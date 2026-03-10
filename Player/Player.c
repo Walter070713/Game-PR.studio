@@ -4,6 +4,7 @@ void InitPlayer(Player* pl,Vector2 initpos)
 {
     pl->pos=initpos;
     pl->speed=600.0f;
+    pl->body=20.0f;
     pl->name="Player";
 }
 void UpdatePlayerPos(Player* pl)
@@ -18,6 +19,6 @@ void UpdatePlayerPos(Player* pl)
 }
 void DrawPlayer(Player* pl)
 {
-    DrawCircleV(pl->pos,20.0f,YELLOW);
+    DrawCircleV(pl->pos,pl->body,YELLOW);
     DrawText(pl->name,pl->pos.x-35,pl->pos.y-50,25,WHITE);
 }

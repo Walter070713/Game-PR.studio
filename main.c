@@ -4,6 +4,7 @@
 #include "CameraSet.h"
 #include "MouseAim.h"
 #include "Bullet.h"
+#include "Enemy.h"
 #include "Collision.h"
 int main(void) {
     const int window_width=2560;
@@ -12,23 +13,37 @@ int main(void) {
     Vector2 window_center={(float)window_width/2,(float)window_height/2};
     Rectangle rec={window_center.x-500.0f,window_center.y-225.0f,1000.0f,500.0f};
     Player plyr;
+
+    Enemy testenemy;
+
     Bullet bulletpool[capacity];
     MseAim mouse;
     Camera2D camera={0};
     InitPlayer(&plyr,window_center);
+    InitEnemy(&testenemy);
     InitCamera(&camera,window_center);
     InitBulletPool(bulletpool,capacity);
     InitWindow(window_width, window_height, "GAME by PR.studio");
     while (!WindowShouldClose()) {
         UpdatePlayerPos(&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
-        UpdateBulletPos(bulletpool,capacity,&plyr,&mouse);
+        UpdateBulletPos(bulletpool,capacity,&plyr,&mouse,&testenemy);
+        UpdateEnemyLife(bulletpool,&testenemy);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.1f);
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));
         BeginDrawing();
             ClearBackground(BLACK);
             DrawText("Health\nShield\nStrength",0,0,70,YELLOW);
             BeginMode2D(camera);
+            if (testenemy.flashtime>0)
+            {
+                testenemy.state=RED;
+            }
+            else
+            {
+                testenemy.state=WHITE;
+            }
+            DrawCircleV(testenemy.pos,testenemy.body,testenemy.state);
             DrawRectangle(2000,1000,800,400,WHITE);
             DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);

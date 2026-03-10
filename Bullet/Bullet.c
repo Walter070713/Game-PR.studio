@@ -9,7 +9,7 @@ void InitBulletPool(Bullet bulletpool[],int capacity)
         bulletpool[i].active=false;
     }
 }
-void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse)
+void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy)
 {
     for(int i=0;i<capacity;++i)
     {
@@ -21,7 +21,7 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse)
             {
                 bulletpool[i].active=false;
             }
-            UpdateBulletLife(&bulletpool[i],(Rectangle){2000,1000,800,400,WHITE},&enemy);
+        UpdateBulletLife(&bulletpool[i],(Rectangle){2000,1000,800,400},enemy);
         }
     }
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))

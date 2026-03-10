@@ -1,5 +1,5 @@
 #ifndef ENEMY_H
-#define ENEMY_h
+#define ENEMY_H
 #include "raylib.h"
 typedef struct Enemy{
     Vector2 pos;
@@ -8,6 +8,7 @@ typedef struct Enemy{
     float body;
     int life;
     int damage;
+    float flashtime;
 }Enemy;
-Enemy enemy;
+void InitEnemy(Enemy* enemy);
 #endif
