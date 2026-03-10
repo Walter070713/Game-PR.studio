@@ -13,6 +13,7 @@ int main(void) {
         BeginDrawing();
             ClearBackground(BLACK);
             DrawText("Health\nShield\nStrength",0,0,70,YELLOW);
+            DrawPlayer(&plyr);
         EndDrawing();
     }
     CloseWindow();

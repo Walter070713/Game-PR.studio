@@ -11,5 +11,5 @@ typedef struct Player{
 }Player;
 void InitPlayer(Player* pl,Vector2 initpos);
 void UpdatePlayerPos(Player* pl);
-// void DrawPlayer(Player* pl);
+void DrawPlayer(Player* pl);
 #endif

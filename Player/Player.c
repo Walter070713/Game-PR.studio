@@ -16,8 +16,8 @@ void UpdatePlayerPos(Player* pl)
     pl->dir=Vector2Normalize(pl->dir);
     pl->pos=Vector2Add(pl->pos,Vector2Scale(pl->dir,pl->speed*GetFrameTime()));
 }
-// void DrawPlayer(Player* pl)
-// {
-//     DrawCircleV(pl->pos,20.0f,YELLOW);
-//     DrawText(pl->name,pl->pos.x-35,pl->pos.y-50,25,WHITE);
-// }
+void DrawPlayer(Player* pl)
+{
+    DrawCircleV(pl->pos,20.0f,YELLOW);
+    DrawText(pl->name,pl->pos.x-35,pl->pos.y-50,25,WHITE);
+}
