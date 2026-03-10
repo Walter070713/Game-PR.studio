@@ -13,7 +13,6 @@
                 "Bullet/Bullet.c",
                 "Collision/Collision.c",
                 "Enemy/Enemy.c",
-                
                 "-o", "game.exe",
                 "-I", "include",
                 "-I", "Player",

@@ -28,21 +28,21 @@ int main(void) {
         UpdatePlayerPos(&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
         UpdateBulletPos(bulletpool,capacity,&plyr,&mouse,&testenemy);
-        UpdateEnemyLife(bulletpool,&testenemy);
+        UpdateEnemyLife(&testenemy);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.1f);
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));
+        if (testenemy.flashtime>0.0f)
+        {
+            testenemy.state=RED;
+        }
+        else
+        {
+            testenemy.state=WHITE;
+        }
         BeginDrawing();
             ClearBackground(BLACK);
             DrawText("Health\nShield\nStrength",0,0,70,YELLOW);
             BeginMode2D(camera);
-            if (testenemy.flashtime>0)
-            {
-                testenemy.state=RED;
-            }
-            else
-            {
-                testenemy.state=WHITE;
-            }
             DrawCircleV(testenemy.pos,testenemy.body,testenemy.state);
             DrawRectangle(2000,1000,800,400,WHITE);
             DrawRectangleLinesEx(rec,3.0f,WHITE);

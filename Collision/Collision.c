@@ -11,13 +11,14 @@ void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy)
         bullet->active=false;
     }
 }
-void UpdateEnemyLife(Bullet* bullet,Enemy* enemy)
+void UpdateEnemyLife(Enemy* enemy)
 {
-    if (CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
+    if (enemy->flashtime>0)
     {
-        if (enemy->flashtime>0)
-        {
-            enemy->flashtime-=GetFrameTime();
-        }
+        enemy->flashtime-=GetFrameTime();
+    }
+    else
+    {
+        enemy->flashtime=0;
     }
 }

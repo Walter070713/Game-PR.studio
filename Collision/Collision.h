@@ -4,5 +4,5 @@
 #include "Enemy.h"
 #include "Bullet.h"
 void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy);
-void UpdateEnemyLife(Bullet* bullet,Enemy* enemy);
+void UpdateEnemyLife(Enemy* enemy);
 #endif
