@@ -1,6 +1,9 @@
 #ifndef BULLET_H
 #define BULLET_H
 #include "raylib.h"
+#include "raymath.h"
+#include "Player.h"
+#include "MouseAim.h"
 typedef struct Bullet{
     Vector2 pos;
     Vector2 dir;
