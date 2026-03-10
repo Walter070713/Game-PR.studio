@@ -21,7 +21,7 @@ int main(void) {
     while (!WindowShouldClose()) {
         UpdatePlayerPos(&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
-        UpdateBulletPool(bulletpool,capacity,&plyr,&mouse);
+        UpdateBulletPos(bulletpool,capacity,&plyr,&mouse);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.1f);
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));
         BeginDrawing();
