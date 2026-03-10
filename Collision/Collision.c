@@ -11,7 +11,7 @@ void UpdateEnemyLife(Bullet* bullet,Enemy* enemy)
     if (CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
     {
         Color temp=enemy->state;
-        for (int i=0;i<50;++i)
+        for (int i=0;i<100;++i)
         {
             enemy->state=RED;
         }

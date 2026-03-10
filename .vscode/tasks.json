@@ -21,7 +21,7 @@
                 "-I", "Mouse",
                 "-I", "Bullet",
                 "-I", "Collision",
-                
+                "-I", "Enemy",
                 "-L", "lib",
                 "-lraylib",
                 "-lopengl32",

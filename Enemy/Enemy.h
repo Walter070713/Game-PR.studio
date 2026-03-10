@@ -9,4 +9,5 @@ typedef struct Enemy{
     int life;
     int damage;
 }Enemy;
+Enemy enemy;
 #endif

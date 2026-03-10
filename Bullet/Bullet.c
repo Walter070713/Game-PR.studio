@@ -1,4 +1,5 @@
 #include "Bullet.h"
+#include "Collision.h"
 void InitBulletPool(Bullet bulletpool[],int capacity)
 {
     for (int i=0;i<capacity;++i)
@@ -20,6 +21,7 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse)
             {
                 bulletpool[i].active=false;
             }
+            UpdateBulletLife(&bulletpool[i],(Rectangle){2000,1000,800,400,WHITE},&enemy);
         }
     }
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))

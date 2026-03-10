@@ -29,7 +29,7 @@ int main(void) {
             ClearBackground(BLACK);
             DrawText("Health\nShield\nStrength",0,0,70,YELLOW);
             BeginMode2D(camera);
-            DrawBlocks();
+            DrawRectangle(2000,1000,800,400,WHITE);
             DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);
             DrawLineEx(plyr.pos,WeaponEnd,8.0f,RED);
