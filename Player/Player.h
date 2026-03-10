@@ -10,6 +10,6 @@ typedef struct Player{
     int shield;
 }Player;
 void InitPlayer(Player* pl,Vector2 initpos);
-// void UpdatePlayerPos(Player* pl);
+void UpdatePlayerPos(Player* pl);
 // void DrawPlayer(Player* pl);
 #endif
