@@ -4,6 +4,7 @@ void InitBulletPool(Bullet bulletpool[],int capacity)
     for (int i=0;i<capacity;++i)
     {
         bulletpool[i].speed=1500.0f;
+        bulletpool[i].size=12.0f;
         bulletpool[i].active=false;
     }
 }
@@ -42,7 +43,7 @@ void DrawBullet(Bullet bulletpool[],int capacity)
     {
         if (bulletpool[i].active)
         {
-            DrawCircleV(bulletpool[i].pos,12.0f,YELLOW);
+            DrawCircleV(bulletpool[i].pos,bulletpool[i].size,YELLOW);
         }
     }
 }

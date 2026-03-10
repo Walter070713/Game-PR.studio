@@ -4,6 +4,7 @@
 typedef struct Player{
     Vector2 pos;
     Vector2 dir;
+    
     char* name;
     float speed;
     int health;
