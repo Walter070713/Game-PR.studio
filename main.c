@@ -6,6 +6,7 @@ int main(void) {
     const int window_width=2560;
     const int window_height=1600;
     Vector2 window_center={(float)window_width/2,(float)window_height/2};
+    Rectangle rec={window_center.x-500.0f,window_center.y-225.0f,1000.0f,500.0f};
     Player plyr;
     Camera2D camera={0};
     InitPlayer(&plyr,window_center);
@@ -17,7 +18,10 @@ int main(void) {
         BeginDrawing();
             ClearBackground(BLACK);
             DrawText("Health\nShield\nStrength",0,0,70,YELLOW);
+            BeginMode2D(camera);
+            DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);
+            EndMode2D();
         EndDrawing();
     }
     CloseWindow();
