@@ -1,4 +1,4 @@
-#ifndef MOUSEAIM_h
+#ifndef MOUSEAIM_H
 #define MOUSEAIM_H
 #include "raylib.h"
 #include "raymath.h"

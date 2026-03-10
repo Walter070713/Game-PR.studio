@@ -11,4 +11,5 @@ typedef struct Bullet{
     bool active;
 }Bullet;
 void InitBulletPool(Bullet bulletpool[],int capacity);
+void UpdateBulletPool(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse);
 #endif

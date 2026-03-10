@@ -21,6 +21,7 @@ int main(void) {
     while (!WindowShouldClose()) {
         UpdatePlayerPos(&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
+        UpdateBulletPool(bulletpool,capacity,&plyr,&mouse);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.1f);
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));
         BeginDrawing();
@@ -30,6 +31,13 @@ int main(void) {
             DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);
             DrawLineEx(plyr.pos,WeaponEnd,8.0f,RED);
+            for(int i=0;i<capacity;++i)
+            {
+                if (bulletpool[i].active)
+                {
+                    DrawCircleV(bulletpool[i].pos,20.0f,YELLOW);
+                }
+            }
             EndMode2D();
         EndDrawing();
     }
