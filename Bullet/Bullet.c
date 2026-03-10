@@ -15,7 +15,7 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
     {
         if(bulletpool[i].active)
         {
-            bulletpool[i].pos=Vector2Add(bulletpool[i].pos,Vector2Scale(bulletpool[i].velocity,GetFrameTime()));
+            bulletpool[i].pos=Vector2Add(bulletpool[i].pos,Vector2Scale(bulletpool[i].dir,bulletpool[i].speed*GetFrameTime()));
             float distance=Vector2DistanceSqr(bulletpool[i].pos,pl->pos);
             if (distance>=2000000.0f)
             {
@@ -32,7 +32,6 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
             {
                 bulletpool[i].pos=pl->pos;
                 bulletpool[i].dir=mouse->dir;
-                bulletpool[i].velocity=Vector2Scale(bulletpool[i].dir,bulletpool[i].speed);
                 bulletpool[i].active=true;
                 break;
             }
