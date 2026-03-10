@@ -20,6 +20,7 @@
                 "-I", "Mouse",
                 "-I", "Bullet",
                 "-I", "Collision",
+                "-I", "Circle",
                 "-L", "lib",
                 "-lraylib",
                 "-lopengl32",
