@@ -3,7 +3,7 @@ void InitBulletPool(Bullet bulletpool[],int capacity)
 {
     for (int i=0;i<capacity;++i)
     {
-        bulletpool[i].speed=50.0f;
+        bulletpool[i].speed=1500.0f;
         bulletpool[i].active=false;
     }
 }
@@ -15,7 +15,7 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse)
         {
             bulletpool[i].pos=Vector2Add(bulletpool[i].pos,Vector2Scale(bulletpool[i].velocity,GetFrameTime()));
             float distance=Vector2DistanceSqr(bulletpool[i].pos,pl->pos);
-            if (distance>=3000.0f)
+            if (distance>=2000000.0f)
             {
                 bulletpool[i].active=false;
             }
@@ -33,6 +33,16 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse)
                 bulletpool[i].active=true;
                 break;
             }
+        }
+    }
+}
+void DrawBullet(Bullet bulletpool[],int capacity)
+{
+    for(int i=0;i<capacity;++i)
+    {
+        if (bulletpool[i].active)
+        {
+            DrawCircleV(bulletpool[i].pos,12.0f,YELLOW);
         }
     }
 }

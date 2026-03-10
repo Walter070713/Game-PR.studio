@@ -31,13 +31,7 @@ int main(void) {
             DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);
             DrawLineEx(plyr.pos,WeaponEnd,8.0f,RED);
-            for(int i=0;i<capacity;++i)
-            {
-                if (bulletpool[i].active)
-                {
-                    DrawCircleV(bulletpool[i].pos,20.0f,YELLOW);
-                }
-            }
+            DrawBullet(bulletpool,capacity);
             EndMode2D();
         EndDrawing();
     }
