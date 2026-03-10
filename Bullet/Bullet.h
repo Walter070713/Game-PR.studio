@@ -4,6 +4,7 @@
 #include "raymath.h"
 #include "Player.h"
 #include "MouseAim.h"
+#include "Collision.h"
 typedef struct Bullet{
     Vector2 pos;
     Vector2 dir;

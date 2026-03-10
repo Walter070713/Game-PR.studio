@@ -4,6 +4,7 @@
 #include "CameraSet.h"
 #include "MouseAim.h"
 #include "Bullet.h"
+#include "Collision.h"
 int main(void) {
     const int window_width=2560;
     const int window_height=1600;

@@ -13,6 +13,7 @@
                 "Bullet/Bullet.c",
                 "Collision/Collision.c",
                 "Enemy/Enemy.c",
+                "Blocks/Blocks.c",
                 "-o", "game.exe",
                 "-I", "include",
                 "-I", "Player",
@@ -20,7 +21,7 @@
                 "-I", "Mouse",
                 "-I", "Bullet",
                 "-I", "Collision",
-                
+                "-I", "Blocks",
                 "-L", "lib",
                 "-lraylib",
                 "-lopengl32",
