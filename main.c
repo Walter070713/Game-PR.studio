@@ -18,12 +18,14 @@ int main(void) {
         UpdatePlayerPos(&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.1f);
+        Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));
         BeginDrawing();
             ClearBackground(BLACK);
             DrawText("Health\nShield\nStrength",0,0,70,YELLOW);
             BeginMode2D(camera);
             DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);
+            DrawLineEx(plyr.pos,WeaponEnd,8.0f,RED);
             EndMode2D();
         EndDrawing();
     }
