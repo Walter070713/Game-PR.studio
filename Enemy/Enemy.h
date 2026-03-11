@@ -5,7 +5,6 @@
 #include "Player.h"
 typedef struct Enemy{
     Vector2 pos;
-    Vector2 dir;
     Color state;
     float body;
     float speed;

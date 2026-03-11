@@ -9,7 +9,6 @@ void InitEnemy(Enemy* enemy)
 }
 void UpdateEnemyPos(Enemy* enemy,Player* pl)
 {
-    enemy->dir=Vector2Subtract(pl->pos,enemy->pos);
-    enemy->dir=Vector2Normalize(enemy->dir);
-    enemy->pos=Vector2Add(enemy->pos,Vector2Scale(enemy->dir,enemy->speed*GetFrameTime()));
+    // enemy->pos=Vector2Lerp(enemy->pos,pl->pos,0.001f);
+    enemy->pos=Vector2MoveTowards(enemy->pos,pl->pos,enemy->speed*GetFrameTime());
 }
