@@ -26,9 +26,9 @@ int main(void) {
     InitWindow(window_width, window_height, "GAME by PR.studio");
     while (!WindowShouldClose()) {
         UpdatePlayerPos(&plyr);
-        UpdateEnemyPos(&testenemy,&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
         UpdateBulletPos(bulletpool,capacity,&plyr,&mouse,&testenemy);
+        UpdateEnemyPos(&testenemy,&plyr);
         UpdateEnemyLife(&testenemy);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.001f);
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));

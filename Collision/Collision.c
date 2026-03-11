@@ -8,6 +8,8 @@ void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy)
     else if(CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
     {
         enemy->flashtime=0.1f;
+        enemy->targetpos = Vector2Add(enemy->pos, Vector2Scale(bullet->dir, 50.0f));
+        enemy->pos = Vector2Lerp(enemy->pos, enemy->targetpos, 0.2f);
         bullet->active=false;
     }
 }
