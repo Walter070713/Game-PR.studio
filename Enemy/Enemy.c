@@ -31,7 +31,7 @@ void EnemyHit(Enemy enemypool[],int emycapacity)
     }
 }
 // Update the enemy horde
-void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Player* pl)
+void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Vector2 plpos)
 {
     // Loop through the horde so as to update ONLY alive enemies' position 
     for (int i=0;i<emycapacity;++i)
@@ -43,7 +43,7 @@ void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Player* pl)
         }
         if (enemypool[i].active) // Update alive enemies position
         {
-            enemypool[i].pos=Vector2MoveTowards(enemypool[i].pos,pl->pos,enemypool[i].speed*GetFrameTime());
+            enemypool[i].pos=Vector2MoveTowards(enemypool[i].pos,plpos,enemypool[i].speed*GetFrameTime());
         }
         if (enemypool[i].flashtime>0) // Check if the enemy is in the RED state and making it return to normal WHITE state looply.
         {

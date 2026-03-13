@@ -7,5 +7,5 @@ typedef struct MseAim{
     Vector2 pos;
     Vector2 dir;
 }MseAim;
-void UpdateMouseAim(MseAim* mouse,Camera2D camera,Player* pl);
+void UpdateMouseAim(MseAim* mouse,Camera2D camera,Vector2 plps);
 #endif
