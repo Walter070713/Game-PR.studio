@@ -1,35 +1,35 @@
 #include "raylib.h"
 #include "raymath.h"
+#include "window_setting.h"
 #include "Player.h"
 #include "CameraSet.h"
 #include "MouseAim.h"
 #include "Bullet.h"
 #include "Enemy.h"
-#include "Collision.h"
 int main(void) {
-    const int window_width=2560;
-    const int window_height=1600;
-    const int capacity=20;
-    Vector2 window_center={(float)window_width/2,(float)window_height/2};
+    // const int window_width=2560;
+    // const int window_height=1600;
+    const int blt_capacity=20;
+    // Vector2 window_center={(float)window_width/2,(float)window_height/2};
     Rectangle rec={window_center.x-500.0f,window_center.y-225.0f,1000.0f,500.0f};
     Player plyr;
-
     Enemy testenemy;
-
-    Bullet bulletpool[capacity];
+    int emycapacity=5;
+    Enemy enemypool[emycapacity];
+    Bullet bulletpool[blt_capacity];
     MseAim mouse;
     Camera2D camera={0};
     InitPlayer(&plyr,window_center);
     InitEnemy(&testenemy);
     InitCamera(&camera,window_center);
-    InitBulletPool(bulletpool,capacity);
+    InitBulletPool(bulletpool,blt_capacity);
     InitWindow(window_width, window_height, "GAME by PR.studio");
     while (!WindowShouldClose()) {
         UpdatePlayerPos(&plyr);
         UpdateMouseAim(&mouse,camera,&plyr);
-        UpdateBulletPos(bulletpool,capacity,&plyr,&mouse,&testenemy);
+        UpdateBulletPos(bulletpool,blt_capacity,&plyr,&mouse,&testenemy);
         UpdateEnemyPos(&testenemy,&plyr);
-        UpdateEnemyLife(&testenemy);
+        UpdateEnemyState(&testenemy);
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.001f);
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f));
         if (testenemy.flashtime>0.0f)
@@ -49,7 +49,7 @@ int main(void) {
             DrawRectangleLinesEx(rec,3.0f,WHITE);
             DrawPlayer(&plyr);
             DrawLineEx(plyr.pos,WeaponEnd,8.0f,RED);
-            DrawBullet(bulletpool,capacity);
+            DrawBullet(bulletpool,blt_capacity);
             EndMode2D();
         EndDrawing();
     }

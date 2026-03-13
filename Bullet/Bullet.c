@@ -1,5 +1,5 @@
 #include "Bullet.h"
-#include "Collision.h"
+#include "Enemy.h"
 void InitBulletPool(Bullet bulletpool[],int capacity)
 {
     for (int i=0;i<capacity;++i)
@@ -7,6 +7,7 @@ void InitBulletPool(Bullet bulletpool[],int capacity)
         bulletpool[i].speed=1500.0f;
         bulletpool[i].size=12.0f;
         bulletpool[i].active=false;
+        bulletpool[i].hitenemy=false;
     }
 }
 void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy)
@@ -36,6 +37,21 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
                 break;
             }
         }
+    }
+}
+void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy)
+{
+    if (CheckCollisionCircleRec(bullet->pos,bullet->size,rec))
+    {
+        bullet->active=false;
+    }
+    else if(CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
+    {
+        enemy->flashtime=0.1f;
+        enemy->targetpos = Vector2Add(enemy->pos, Vector2Scale(bullet->dir, 50.0f));
+        enemy->pos = Vector2Lerp(enemy->pos, enemy->targetpos, 0.2f);
+        enemy->health-=1;
+        bullet->active=false;
     }
 }
 void DrawBullet(Bullet bulletpool[],int capacity)
