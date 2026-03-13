@@ -1,12 +1,13 @@
 #include "Bullet.h"
 #include "Enemy.h"
+// Initialize the bullet
 void InitBulletPool(Bullet bulletpool[],int capacity)
 {
     for (int i=0;i<capacity;++i)
     {
         bulletpool[i].speed=1500.0f;
         bulletpool[i].size=12.0f;
-        bulletpool[i].active=false;
+        bulletpool[i].active=false; // whether it's fired
     }
 }
 void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy)
@@ -17,13 +18,14 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
         {
             bulletpool[i].pos=Vector2Add(bulletpool[i].pos,Vector2Scale(bulletpool[i].dir,bulletpool[i].speed*GetFrameTime()));
             float distance=Vector2DistanceSqr(bulletpool[i].pos,pl->pos);
-            if (distance>=2000000.0f)
+            if (distance>=2000000.0f) // bullet reach the maximum distance will return to the player
             {
                 bulletpool[i].active=false;
             }
-        UpdateBulletLife(&bulletpool[i],(Rectangle){2000,1000,800,400},enemy);
+        // UpdateBulletLife(&bulletpool[i],(Rectangle){2000,1000,800,400},enemy);
         }
     }
+    // Mouse input logic to fire
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
         for (int i=0;i<capacity;++i)
@@ -32,27 +34,30 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
             {
                 bulletpool[i].pos=pl->pos;
                 bulletpool[i].dir=mouse->dir;
+
                 bulletpool[i].active=true;
                 break;
             }
         }
     }
 }
-void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy)
-{
-    if (CheckCollisionCircleRec(bullet->pos,bullet->size,rec))
-    {
-        bullet->active=false;
-    }
-    else if(CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
-    {
-        enemy->flashtime=0.1f;
-        enemy->targetpos = Vector2Add(enemy->pos, Vector2Scale(bullet->dir, 50.0f));
-        enemy->pos = Vector2Lerp(enemy->pos, enemy->targetpos, 0.2f);
-        enemy->health-=1;
-        bullet->active=false;
-    }
-}
+// void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy)
+// {
+//     if (CheckCollisionCircleRec(bullet->pos,bullet->size,rec))
+//     {
+//         bullet->active=false;
+//     }
+//     else if(CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
+//     {
+//         enemy->flashtime=0.1f;
+//         enemy->targetpos = Vector2Add(enemy->pos, Vector2Scale(bullet->dir, 50.0f));
+//         enemy->pos = Vector2Lerp(enemy->pos, enemy->targetpos, 0.2f);
+//         enemy->health-=1;
+//         bullet->active=false;
+//     }
+// }
+
+// Draw fired bulllet
 void DrawBullet(Bullet bulletpool[],int capacity)
 {
     for(int i=0;i<capacity;++i)

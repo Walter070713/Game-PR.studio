@@ -17,6 +17,5 @@ typedef struct Enemy{
     float flashtime;
 }Enemy;
 void InitEnemy(Enemy enemypool[],int emycapacity);
-void UpdateEnemyPos(Enemy* enemy,Player* pl);
-void UpdateEnemyState(Enemy* enemy);
+void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Player* pl);
 #endif

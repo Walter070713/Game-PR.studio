@@ -1,4 +1,5 @@
 #include "CameraSet.h"
+// Initialize the camera setting
 void InitCamera(Camera2D* camera,Vector2 offset)
 {
     camera->offset=offset;

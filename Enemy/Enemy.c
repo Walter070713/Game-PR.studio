@@ -1,28 +1,31 @@
 #include "Enemy.h"
 #include "Bullet.h"
-// initialize enemy
+
+// Initialize the enemypool
 void InitEnemy(Enemy enemypool[],int emycapacity)
 {
     for (int i=0;i<emycapacity;++i)
     {
-        enemypool[i].flashtime=0.0f;
+        enemypool[i].flashtime=0.0f; // the time duration of the quick flash effect when the enemy get hit
         enemypool[i].pos=(Vector2){GetRandomValue(0,window_width),GetRandomValue(0,window_height)};
         enemypool[i].health=15;
-        enemypool[i].active=true;
+        enemypool[i].active=true; // whether it's dead or alive
         enemypool[i].speed=400.0f;
-        enemypool[i].body=30.0f;
-        enemypool[i].state=WHITE;
+        enemypool[i].body=30.0f; // enemy's size
+        enemypool[i].state=WHITE; // the enemy turns red real quick and returns to white when it get hit
     }
 }
-// update the horde
+// Update the enemy horde
 void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Player* pl)
 {
+    // Loop through the horde so as to update ONLY alive enemies' position 
     for (int i=0;i<emycapacity;++i)
     {
         if (enemypool[i].active)
         {
             enemypool[i].pos=Vector2MoveTowards(enemypool[i].pos,pl->pos,enemypool[i].speed*GetFrameTime());
         }
+        // Check if the enemy is in the RED state and making it return to normal WHITE state looply.
         if (enemypool[i].flashtime>0)
         {
             enemypool[i].flashtime-=GetFrameTime();
@@ -31,15 +34,14 @@ void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Player* pl)
 //spawn system
     float spawnTimer=0.0f;
     spawnTimer += GetFrameTime();
-    if (spawnTimer >= 2.0f) { // Every 2 seconds
+    if (spawnTimer >= 2.0f) { // Every 2 seconds an enemy comes to life
         for (int i = 0; i < emycapacity; ++i) {
             if (!enemypool[i].active) {
-                // Set position
-                enemypool[i].pos = (Vector2){ GetRandomValue(0, 2560), GetRandomValue(0, 1600) };
+                enemypool[i].pos = (Vector2){ GetRandomValue(0, 2560), GetRandomValue(0, 1600) }; // Set position randomly
                 enemypool[i].active = true;
                 enemypool[i].health = 15;
                 spawnTimer = 0; 
-                break; // Only spawn one per timer reset
+                break; // Only spawn one enemy per timer reset
             }
         }
     }

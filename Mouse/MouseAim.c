@@ -1,4 +1,5 @@
 #include "MouseAim.h"
+// Logic to make player keep aiming at where the cursor at
 void UpdateMouseAim(MseAim* mouse,Camera2D camera,Player* pl)
 {
     mouse->pos=GetMousePosition();

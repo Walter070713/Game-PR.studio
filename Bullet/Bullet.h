@@ -14,6 +14,6 @@ typedef struct Bullet{
 }Bullet;
 void InitBulletPool(Bullet bulletpool[],int capacity);
 void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy);
-void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy);
+// void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy);
 void DrawBullet(Bullet bulletpool[],int capacity);
 #endif
