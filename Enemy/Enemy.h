@@ -12,10 +12,11 @@ typedef struct Enemy{
     float body;
     float speed;
     int health;
+    bool active;
     int damage;
     float flashtime;
 }Enemy;
-void InitEnemy(Enemy* enemy);
+void InitEnemy(Enemy enemypool[],int emycapacity);
 void UpdateEnemyPos(Enemy* enemy,Player* pl);
 void UpdateEnemyState(Enemy* enemy);
 #endif

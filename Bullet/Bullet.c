@@ -7,7 +7,6 @@ void InitBulletPool(Bullet bulletpool[],int capacity)
         bulletpool[i].speed=1500.0f;
         bulletpool[i].size=12.0f;
         bulletpool[i].active=false;
-        bulletpool[i].hitenemy=false;
     }
 }
 void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy)

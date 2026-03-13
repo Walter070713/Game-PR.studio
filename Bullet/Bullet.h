@@ -11,7 +11,6 @@ typedef struct Bullet{
     float size;
     float speed;
     bool active;
-    bool hitenemy;
 }Bullet;
 void InitBulletPool(Bullet bulletpool[],int capacity);
 void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy);
