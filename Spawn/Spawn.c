@@ -5,6 +5,7 @@ void UpdateSpawner(Enemy enemypool[], int emycpacity, Vector2 playerPos, float* 
     *spawnTimer += GetFrameTime();
     if (*spawnTimer >= spawnRate) 
     {
+        *spawnTimer=0; // forced to wait for spawnrate seconds before trying again
         for (int i = 0; i < emycpacity; i++) 
         {
             if (!enemypool[i].active) 
