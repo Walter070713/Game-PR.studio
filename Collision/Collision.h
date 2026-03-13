@@ -4,9 +4,5 @@
 #include "Bullet.h"
 #include "Enemy.h"
 #include "Player.h"
-void CheckBulletEnemyCollisions(Bullet b[], int bCount, Enemy e[], int eCount);
-// void CheckBulletBlockCollisions(Bullet b[], int bCount);
-// void CheckPlayerEnemyCollisions(Bullet pool[], int bCount, Enemy enemies[], int eCount);
-// void CheckPlayerBlockCollisions(Bullet pool[], int bCount, Enemy enemies[], int eCount);
-// void CheckEnemyBlockCollisions(Bullet pool[], int bCount, Enemy enemies[], int eCount);
+void ResolveAllCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCount);
 #endif

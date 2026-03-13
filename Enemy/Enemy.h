@@ -18,6 +18,6 @@ typedef struct Enemy{
 }Enemy;
 void InitEnemy(Enemy enemypool[],int emycapacity);
 void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Vector2 plpos);
-void EnemyHit(Enemy enemypool[],int emycapacity);
+void EnemyHitEffect(Enemy enemypool[],int emycapacity);
 void DrawEnemy(Enemy enemypool[],int emycapacity);
 #endif

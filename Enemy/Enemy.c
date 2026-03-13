@@ -15,21 +15,6 @@ void InitEnemy(Enemy enemypool[],int emycapacity)
     }
 }
 
-// Enemy getting hit effect
-void EnemyHit(Enemy enemypool[],int emycapacity)
-{
-    for (int i=0;i<emycapacity;++i)
-    {
-        if (enemypool[i].flashtime>0.0f)
-        {
-            enemypool[i].state=RED;
-        }
-        else
-        {
-            enemypool[i].state=WHITE;
-        }
-    }
-}
 // Update the enemy horde
 void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Vector2 plpos)
 {
@@ -58,6 +43,16 @@ void DrawEnemy(Enemy enemypool[],int emycapacity)
 {
     for (int i=0;i<emycapacity;++i)
     {
+        // Enemy getting hit effect
+        if (enemypool[i].flashtime>0.0f)
+        {
+            enemypool[i].state=RED;
+        }
+        else
+        {
+            enemypool[i].state=WHITE;
+        }
+        // Drawing alive enemies
         if (enemypool[i].active)
         {
             DrawCircleV(enemypool[i].pos,enemypool[i].body,enemypool[i].state);
