@@ -1,5 +1,5 @@
 #include "Bullet.h"
-#include "Enemy.h"
+
 // Initialize the bullet
 void InitBulletPool(Bullet bulletpool[],int capacity)
 {
@@ -10,7 +10,7 @@ void InitBulletPool(Bullet bulletpool[],int capacity)
         bulletpool[i].active=false; // whether it's fired
     }
 }
-void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,Enemy* enemy)
+void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse)
 {
     for(int i=0;i<capacity;++i)
     {
@@ -22,7 +22,6 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
             {
                 bulletpool[i].active=false;
             }
-        // UpdateBulletLife(&bulletpool[i],(Rectangle){2000,1000,800,400},enemy);
         }
     }
     // Mouse input logic to fire
@@ -34,28 +33,12 @@ void UpdateBulletPos(Bullet bulletpool[],int capacity,Player* pl,MseAim* mouse,E
             {
                 bulletpool[i].pos=pl->pos;
                 bulletpool[i].dir=mouse->dir;
-
                 bulletpool[i].active=true;
                 break;
             }
         }
     }
 }
-// void UpdateBulletLife(Bullet* bullet,Rectangle rec,Enemy* enemy)
-// {
-//     if (CheckCollisionCircleRec(bullet->pos,bullet->size,rec))
-//     {
-//         bullet->active=false;
-//     }
-//     else if(CheckCollisionCircles(bullet->pos,bullet->size,enemy->pos,enemy->body))
-//     {
-//         enemy->flashtime=0.1f;
-//         enemy->targetpos = Vector2Add(enemy->pos, Vector2Scale(bullet->dir, 50.0f));
-//         enemy->pos = Vector2Lerp(enemy->pos, enemy->targetpos, 0.2f);
-//         enemy->health-=1;
-//         bullet->active=false;
-//     }
-// }
 
 // Draw fired bulllet
 void DrawBullet(Bullet bulletpool[],int capacity)
