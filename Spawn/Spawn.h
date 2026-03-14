@@ -3,5 +3,6 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "Enemy.h"
-void UpdateSpawner(Enemy enemypool[], int emycpacity, Vector2 playerPos, float* spawnTimer, float spawnRate);
+#include "Map.h"
+void UpdateSpawner(Enemy enemypool[], int emycpacity, Vector2 plpos, float* spawnTimer, float spawnRate, GameMap map);
 #endif

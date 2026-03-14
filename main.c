@@ -34,11 +34,11 @@ int main(void) {
     InitBulletPool(bulletpool,blt_capacity); // Initialize player's bullet state
     InitWindow(window_width, window_height, "GAME by PR.studio");
 
-    while (!WindowShouldClose()) {
-
+    while (!WindowShouldClose()) 
+    {
         UpdateMouseAim(&mouse,camera,plyr.pos); // Logic to make player keep aiming at where the cursor is
         UpdatePlayerPos(&plyr); // Player movement logic
-        UpdateSpawner(enemypool, emy_capacity,plyr.pos, &SpawnTimer,SpawnRate); // Rebirth enemy
+        UpdateSpawner(enemypool, emy_capacity, plyr.pos, &SpawnTimer, SpawnRate, room); // Rebirth enemy
         UpdateEnemyHorde(enemypool,emy_capacity,plyr.pos); // Enemy movement logic
         UpdateBulletPos(bulletpool,blt_capacity,plyr.pos,mouse.dir); // Bullet firing logic
 
