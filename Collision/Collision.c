@@ -1,8 +1,8 @@
 #include "Collision.h"
 
-void ResolveAllCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCount)
+void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCount)
  {
-    
+    // Enemy involved part
     for (int i = 0; i < eCount; i++) 
     {
         if (!e[i].active) continue;
@@ -12,9 +12,16 @@ void ResolveAllCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCo
          {
             if (b[j].active && CheckCollisionCircles(b[j].pos, b[j].size, e[i].pos, e[i].body))
              {
+
                 // Apply damage and flash
                 e[i].health -= 1;
                 e[i].flashtime = 0.1f;
+
+                // Apply hit back effect
+                float HitBackForce = 20.0f;
+                e[i].pos = Vector2Add(e[i].pos, Vector2Scale(b[j].dir, HitBackForce));
+
+                // Kill the bullet
                 b[j].active = false;
             }
         }
@@ -23,8 +30,7 @@ void ResolveAllCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCo
         if (CheckCollisionCircles(pl->pos, pl->body, e[i].pos, e[i].body)) 
         {
             pl->health -= 1; // Direct damage
-            // pushed by enemies
-            Vector2 push = Vector2Subtract(pl->pos,e[i].pos);
+            Vector2 push = Vector2Subtract(pl->pos,e[i].pos); // pushed by enemies
             push = Vector2Scale(Vector2Normalize(push), 1.0f);
             pl->pos=Vector2Add(pl->pos, push);
             e[i].pos = Vector2Subtract(e[i].pos, push);
@@ -42,5 +48,80 @@ void ResolveAllCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCo
                 e[k].pos = Vector2Subtract(e[k].pos, push);
             }
         }
+    }
+}
+
+void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount)
+ {
+    // Inner walls collision
+    for (int i = 0; i < map.WallCount; i++) 
+    {
+        // Player vs wall
+        if (CheckCollisionCircleRec(pl->pos, pl->body, map.walls[i])) 
+        {
+            // Try only moving in X?
+            Vector2 onlyX = { pl->pos.x, pl->prevpos.y };
+            // Try only moving in Y?
+            Vector2 onlyY = { pl->prevpos.x, pl->pos.y };
+
+            if (!CheckCollisionCircleRec(onlyX, pl->body, map.walls[i])) 
+            {
+                pl->pos = onlyX; // Slide horizontally
+            } 
+            else if (!CheckCollisionCircleRec(onlyY, pl->body, map.walls[i]))
+            {
+                pl->pos = onlyY; // Slide vertically
+            }
+            else 
+            {
+                pl->pos = pl->prevpos; // Stuck in a corner, just stop
+            }
+        }
+
+        // Enemy vs wall
+        for (int j=0;j<eCount;++j)
+        {
+            if (CheckCollisionCircleRec(e[j].pos,e[j].body,map.walls[i]))
+            {
+            // Try only moving in X?
+                Vector2 onlyX = { e[j].pos.x, e[j].prevpos.y };
+            // Try only moving in Y?
+                Vector2 onlyY = { e[j].prevpos.x, e[j].pos.y };
+                if (!CheckCollisionCircleRec(onlyX, e[j].body, map.walls[i])) 
+                {
+                    e[j].pos = onlyX; // Slide horizontally
+                } 
+                else if (!CheckCollisionCircleRec(onlyY, e[j].body, map.walls[i]))
+                {
+                    e[j].pos = onlyY; // Slide vertically
+                }
+                else 
+                {
+                    e[j].pos = e[j].prevpos; // Stuck in a corner, just stop
+                }
+            }
+        }
+    }
+    // Outer boundaries collision
+
+    // Player
+    // Keep X inside
+    if (pl->pos.x < map.bounds.x + pl->body)  pl->pos.x = map.bounds.x + pl->body;
+    if (pl->pos.x > map.bounds.x + map.bounds.width - pl->body)  pl->pos.x = map.bounds.x + map.bounds.width - pl->body;
+
+    // Keep Y inside
+    if (pl->pos.y < map.bounds.y + pl->body)  pl->pos.y = map.bounds.y + pl->body;
+    if (pl->pos.y > map.bounds.y + map.bounds.height - pl->body) pl->pos.y = map.bounds.y + map.bounds.height - pl->body;
+
+    // Enemy
+    for (int i=0;i<eCount;++i)
+    {
+        // Keep X inside
+        if (e[i].pos.x < map.bounds.x +e[i].body)  e[i].pos.x = map.bounds.x + e[i].body;
+        if (e[i].pos.x > map.bounds.x + map.bounds.width - e[i].body)  pl->pos.x = map.bounds.x + map.bounds.width - e[i].body;
+
+        // Keep Y inside
+        if (e[i].pos.y < map.bounds.y + e[i].body)  e[i].pos.y = map.bounds.y + e[i].body;
+        if (e[i].pos.y > map.bounds.y + map.bounds.height - e[i].body) e[i].pos.y = map.bounds.y + map.bounds.height - e[i].body;
     }
 }

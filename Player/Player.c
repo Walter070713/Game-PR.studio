@@ -11,6 +11,7 @@ void InitPlayer(Player* pl,Vector2 initpos)
 // Movement logic
 void UpdatePlayerPos(Player* pl)
 {
+    pl->prevpos=pl->pos; // save the pos before moving
     pl->dir=(Vector2){0.0f,0.0f};
     // Keyboard input
     if (IsKeyDown(KEY_W)) pl->dir.y-=1.0f;

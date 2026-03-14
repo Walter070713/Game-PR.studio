@@ -7,6 +7,7 @@
 typedef struct Bullet Bullet;
 typedef struct Enemy{
     Vector2 pos;
+    Vector2 prevpos;
     Vector2 targetpos;
     Color state;
     float body;
@@ -18,6 +19,5 @@ typedef struct Enemy{
 }Enemy;
 void InitEnemy(Enemy enemypool[],int emycapacity);
 void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Vector2 plpos);
-void EnemyHitEffect(Enemy enemypool[],int emycapacity);
 void DrawEnemy(Enemy enemypool[],int emycapacity);
 #endif

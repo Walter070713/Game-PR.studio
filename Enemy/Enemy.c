@@ -28,6 +28,7 @@ void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Vector2 plpos)
         }
         if (enemypool[i].active) // Update alive enemies position
         {
+            enemypool[i].prevpos=enemypool[i].pos; // save the current pos
             enemypool[i].pos=Vector2MoveTowards(enemypool[i].pos,plpos,enemypool[i].speed*GetFrameTime());
         }
         if (enemypool[i].flashtime>0) // Check if the enemy is in the RED state and making it return to normal WHITE state looply.
