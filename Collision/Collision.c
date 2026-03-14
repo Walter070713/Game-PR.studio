@@ -30,8 +30,8 @@ void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int b
         if (CheckCollisionCircles(pl->pos, pl->body, e[i].pos, e[i].body)) 
         {
             pl->health -= 1; // Direct damage
-            Vector2 push = Vector2Subtract(pl->pos,e[i].pos); // pushed by enemies
-            push = Vector2Scale(Vector2Normalize(push), 1.0f);
+            Vector2 push = Vector2Subtract(pl->pos,e[i].pos); // pushed direction
+            push = Vector2Scale(Vector2Normalize(push), 1.0f); // push distance
             pl->pos=Vector2Add(pl->pos, push);
             e[i].pos = Vector2Subtract(e[i].pos, push);
         }
