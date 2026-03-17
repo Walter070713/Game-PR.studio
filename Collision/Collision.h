@@ -6,5 +6,5 @@
 #include "Player.h"
 #include "Map.h"
 void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCount);
-void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount);
+void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount,Bullet b[], int bCount);
 #endif

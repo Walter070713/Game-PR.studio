@@ -51,7 +51,7 @@ void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int b
     }
 }
 
-void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount)
+void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount,Bullet b[], int bCount)
  {
     // Inner walls collision
     for (int i = 0; i < map.WallCount; i++) 
@@ -101,6 +101,15 @@ void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount)
                 }
             }
         }
+
+        // Bullet vs wall
+        for (int k=0;k<bCount;++k)
+        {
+            if (b[k].active && CheckCollisionCircleRec(b[k].pos,b[k].size,map.walls[i]))
+            {
+                b[k].active=false;
+            }
+        }
     }
     // Outer boundaries collision
 
@@ -123,5 +132,20 @@ void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount)
         // Keep Y inside
         if (e[i].pos.y < map.bounds.y + e[i].body)  e[i].pos.y = map.bounds.y + e[i].body;
         if (e[i].pos.y > map.bounds.y + map.bounds.height - e[i].body) e[i].pos.y = map.bounds.y + map.bounds.height - e[i].body;
+    }
+
+    // Bullet vs boundary
+    for (int j=0;j<bCount;++j)
+    {
+        if (b[j].active)
+        {
+            // Keep inside X
+            if (b[j].pos.x < map.bounds.x + b[j].size || b[j].pos.x > map.bounds.x + map.bounds.width - b[j].size) 
+                b[j].active = false;
+            
+            // Keep inside Y
+            if (b[j].pos.y < map.bounds.y + b[j].size || b[j].pos.y > map.bounds.y + map.bounds.height - b[j].size) 
+                b[j].active = false;
+        }
     }
 }

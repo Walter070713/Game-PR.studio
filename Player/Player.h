@@ -10,6 +10,7 @@ typedef struct Player{
     float body;
     int health;
     int shield;
+    
 }Player;
 void InitPlayer(Player* pl,Vector2 initpos);
 void UpdatePlayerPos(Player* pl);

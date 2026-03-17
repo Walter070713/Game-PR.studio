@@ -48,7 +48,7 @@ int main(void) {
         UpdateBulletPos(bulletpool,blt_capacity,plyr.pos,mouse.dir); // Bullet firing logic
 
         ResolveEnemyCollisions(&plyr,enemypool,emy_capacity, bulletpool,blt_capacity);
-        ResolveMapCollisions(&plyr,room,enemypool,emy_capacity);
+        ResolveMapCollisions(&plyr,room,enemypool,emy_capacity,bulletpool,blt_capacity);
 
         camera.target=Vector2Lerp(plyr.pos,camera.target,0.001f); // To keep the player is always at center of the screen
         Vector2 WeaponEnd=Vector2Add(plyr.pos,Vector2Scale(mouse.dir,50.0f)); // To form the player's weapon and make it point to the cursor
