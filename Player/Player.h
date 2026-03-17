@@ -12,6 +12,10 @@ typedef struct Player{
     float body;
     int health;
     int shield;
+    int maxshield;
+    float hurtTimer; // For I-Frames
+    float shieldRegenTimer; // Time since last hit
+    float shieldRegenAccum; // Accumulator for 1-second regen ticks
     Weapon weapon;  // Current equipped weapon
 }Player;
 

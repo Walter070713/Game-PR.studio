@@ -1,5 +1,67 @@
 #include "Collision.h"
 
+// Forward declarations (used before their definitions)
+void ApplyDamageToPlayer(Player *pl, int damage);
+void UpdatePlayerStats(Player *pl);
+
+void ApplyDamageToPlayer(Player *pl, int damage)
+{
+    // Check I-Frames: If timer > 0, ignore damage
+    if (pl->hurtTimer > 0) return;
+
+    // Reset Shield Regen: Getting hit stops the recharge
+    pl->shieldRegenTimer = 5.0f; // Must wait 5 seconds to regen again
+
+    // Trigger I-Frames
+    pl->hurtTimer = 0.6f; // Player is indamageable for 0.6 seconds
+
+    // Damage to Shield first
+    if (pl->shield > 0) {
+        pl->shield -= damage;
+        if (pl->shield < 0) {
+            // Carry over excess damage to Health
+            pl->health += pl->shield; 
+            pl->shield = 0;
+        }
+    } else {
+        // 5. Damage directly to Health
+        pl->health -= damage;
+    }
+
+    // Check for Death
+    if (pl->health <= 0) {
+        pl->health = 0;
+        // Trigger Game Over State here later
+    }
+}
+
+void UpdatePlayerStats(Player *pl)
+{
+
+    // Tick down I-Frames
+    if (pl->hurtTimer > 0) pl->hurtTimer -= GetFrameTime();
+
+    // Handle Shield Regeneration
+    if (pl->shieldRegenTimer > 0) 
+    {
+        pl->shieldRegenTimer -= GetFrameTime();
+        pl->shieldRegenAccum = 0.0f; // Reset accumulator while waiting
+    } 
+    else 
+    {
+        // Regen shield slowly after the delay
+        if (pl->shield < pl->maxshield) 
+        {
+            pl->shieldRegenAccum += GetFrameTime();
+            if (pl->shieldRegenAccum >= 1.0f)  // 1 point per second
+            { 
+                pl->shield++;
+                pl->shieldRegenAccum = 0.0f;
+            }
+        }
+    }
+}
+
 void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCount)
  {
     // Enemy involved part
@@ -29,10 +91,10 @@ void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int b
         // ENEMY vs PLAYER
         if (CheckCollisionCircles(pl->pos, pl->body, e[i].pos, e[i].body)) 
         {
-            pl->health -= 1; // Direct damage
-            Vector2 push = Vector2Subtract(pl->pos,e[i].pos); // pushed direction
+            ApplyDamageToPlayer(pl, 1);
+            Vector2 push = Vector2Subtract(pl->pos, e[i].pos); // pushed direction
             push = Vector2Scale(Vector2Normalize(push), 1.0f); // push distance
-            pl->pos=Vector2Add(pl->pos, push);
+            pl->pos = Vector2Add(pl->pos, push);
             e[i].pos = Vector2Subtract(e[i].pos, push);
         }
 

@@ -11,7 +11,11 @@ void InitPlayer(Player* pl, Vector2 initpos)
     pl->name = "Player";
     pl->health = 100;
     pl->shield = 50;
+    pl->maxshield=50;
     pl->weapon = InitWeapon(WEAPON_PISTOL); // Initialize with pistol as default weapon
+    pl->hurtTimer = 0.0f;
+    pl->shieldRegenTimer = 0.0f;
+    pl->shieldRegenAccum = 0.0f;
 }
 
 // Movement logic

@@ -10,7 +10,7 @@
 #include "Collision.h"
 #include "Spawn.h"
 #include "Map.h"
-
+#include "Weapon.h"
 
 // All the code done so far is coded by Walter from 6th Mar to 14th Mar
 // Mostly from 18:30 to 24:00, sometimes to 3:00 am
@@ -35,7 +35,7 @@ int main(void) {
     Camera2D camera = {0};
 
     GameMap room = InitRoom(); // Initialize the room
-    InitPlayer(&plyr, window_center); // Initialize player (includes weapon init)
+    InitPlayer(&plyr, window_center); // Initialize player and weapon unit
     InitEnemy(enemypool, emy_capacity); // Initialize enemy
     InitCamera(&camera, window_center); // Initialize camera
     InitBulletPool(bulletpool, blt_capacity); // Initialize bullet pool
@@ -46,6 +46,7 @@ int main(void) {
         UpdateMouseAim(&mouse, camera, plyr.pos); // Logic to make player keep aiming at where the cursor is
         UpdatePlayerPos(&plyr); // Player movement logic
         UpdateWeapon(&plyr.weapon); // Update weapon timers and state
+        UpdatePlayerStats(&plyr); // Update shield regen + hurt timer
         UpdateSpawner(enemypool, emy_capacity, plyr.pos, &SpawnTimer, SpawnRate, room); // Rebirth enemy
         UpdateEnemyHorde(enemypool, emy_capacity, plyr.pos); // Enemy movement logic
         UpdateBulletPhysics(bulletpool, blt_capacity, plyr.pos); // Update bullet physics
@@ -79,7 +80,7 @@ int main(void) {
             EndMode2D();
             
             // Draw HUD - Health and weapon status (after world rendering so it's on top)
-            DrawText("STATS", 10, 10, 40, YELLOW);
+            DrawText(plyr.name, 10, 10, 40, YELLOW);
             DrawText(TextFormat("Health: %d", plyr.health), 10, 60, 30, RED);
             DrawText(TextFormat("Shield: %d", plyr.shield), 10, 100, 30, BLUE);
             
