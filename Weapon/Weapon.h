@@ -16,6 +16,9 @@ typedef struct {
     float bulletSpeed;
     float bulletSize;
     Color bulletColor;
+
+    // Pool capacity -- how many bullets can exist at once for this weapon
+    int bulletPoolSize;
     
     // Magazine & ammo
     int magazine;          // Current ammo in magazine
@@ -29,6 +32,9 @@ typedef struct {
     float reloadTimer;     // Current reload progress
     bool isReloading;      // Currently reloading?
 } Weapon;
+
+// Get the max bullet pool size for the given weapon (used by the bullet system)
+int GetWeaponBulletPoolSize(const Weapon* weapon);
 
 // Initialize a weapon with a specific type
 Weapon InitWeapon(WeaponType type);

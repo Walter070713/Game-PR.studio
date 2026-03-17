@@ -4,6 +4,7 @@
 static const struct {
     float bulletSpeed;
     float bulletSize;
+    int bulletPoolSize;
     int maxMagazine;
     int totalAmmo;
     float fireRate;
@@ -14,6 +15,7 @@ static const struct {
     {
         .bulletSpeed = 1500.0f,
         .bulletSize = 12.0f,
+        .bulletPoolSize = 30, // Enough for ~2 magazines worth of bullets in flight
         .maxMagazine = 15,
         .totalAmmo = 90,
         .fireRate = 0.1f,      // 10 shots per second
@@ -24,6 +26,7 @@ static const struct {
     {
         .bulletSpeed = 2500.0f,
         .bulletSize = 10.0f,
+        .bulletPoolSize = 60, // Enough for ~2 magazines worth of bullets in flight
         .maxMagazine = 30,
         .totalAmmo = 120,
         .fireRate = 0.08f,     // 12.5 shots per second (faster)
@@ -34,6 +37,7 @@ static const struct {
     {
         .bulletSpeed = 1200.0f,
         .bulletSize = 18.0f,
+        .bulletPoolSize = 32, // Some extra for spread shards or rapid firing
         .maxMagazine = 8,
         .totalAmmo = 40,
         .fireRate = 1.0f,      // 1 shot per second (slower)
@@ -50,6 +54,7 @@ Weapon InitWeapon(WeaponType type)
     // Load preset values
     w.bulletSpeed = weaponPresets[type].bulletSpeed;
     w.bulletSize = weaponPresets[type].bulletSize;
+    w.bulletPoolSize = weaponPresets[type].bulletPoolSize;
     w.maxMagazine = weaponPresets[type].maxMagazine;
     w.totalAmmo = weaponPresets[type].totalAmmo;
     w.fireRate = weaponPresets[type].fireRate;
@@ -143,4 +148,9 @@ WeaponInfo GetWeaponInfo(const Weapon* weapon)
     }
     
     return info;
+}
+
+int GetWeaponBulletPoolSize(const Weapon* weapon)
+{
+    return weapon->bulletPoolSize;
 }
