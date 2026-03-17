@@ -58,7 +58,7 @@ void UpdateSpawner(Enemy enemypool[], int emycpacity, Vector2 plpos, float* spaw
                 {
                     enemypool[i].pos = randompos;
                     enemypool[i].active = true;
-                    enemypool[i].health = 10;
+                    enemypool[i].health = 1;
                     enemypool[i].flashtime = 0.0f;
                     enemypool[i].state = WHITE;
                     *spawnTimer = 0; // Reset timer only if an enemy actually spawned

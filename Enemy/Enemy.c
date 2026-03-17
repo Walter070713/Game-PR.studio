@@ -7,7 +7,7 @@ void InitEnemy(Enemy enemypool[],int emycapacity)
     {
         enemypool[i].flashtime=0.0f; // the time duration of the quick flash effect when the enemy get hit
         enemypool[i].pos=(Vector2){GetRandomValue(0,window_width),GetRandomValue(0,window_height)};
-        enemypool[i].health=10;
+        enemypool[i].health=1;
         enemypool[i].active=true; // whether it's dead or alive
         enemypool[i].speed=400.0f;
         enemypool[i].body=30.0f; // enemy's size

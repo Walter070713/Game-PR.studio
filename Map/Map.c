@@ -5,7 +5,7 @@ GameMap InitRoom(void)
     GameMap map;
     
     // Define the outer boundary
-    map.bounds = (Rectangle){ 0, 0, 2400, 1800 }; 
+    map.bounds = (Rectangle){ 1000, 1000, 2400, 1800 }; 
     
     // Set colors
     map.FloorColor = DARKGRAY;
@@ -13,9 +13,9 @@ GameMap InitRoom(void)
 
     //  Add some internal walls
     map.WallCount = 3;
-    map.walls[0] = (Rectangle){ 400, 400, 200, 200 };  // A square pillar
-    map.walls[1] = (Rectangle){ 1200, 800, 400, 80 };  // A long horizontal wall
-    map.walls[2] = (Rectangle){ 1800, 400, 80, 600 };  // A vertical wall
+    map.walls[0] = (Rectangle){ 1400, 1400, 200, 200 };  // A square pillar
+    map.walls[1] = (Rectangle){ 2200, 1800, 400, 80 };  // A long horizontal wall
+    map.walls[2] = (Rectangle){ 2800, 1400, 80, 600 };  // A vertical wall
 
     return map;
 }

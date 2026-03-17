@@ -10,6 +10,11 @@
 #include "Spawn.h"
 #include "Map.h"
 
+
+// All the code done so far is coded by Walter from 6th Mar to 14th Mar
+// Mostly from 18:30 to 24:00, sometimes to 3:00 am
+
+
 // Basic window settings
 const int window_width = 2560;
 const int window_height = 1600;
