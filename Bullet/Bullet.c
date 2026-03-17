@@ -1,53 +1,65 @@
 #include "Bullet.h"
 
-// Initialize the bullet
-void InitBulletPool(Bullet bulletpool[],int capacity)
+// Initialize the bullet pool
+void InitBulletPool(Bullet bulletpool[], int capacity)
 {
-    for (int i=0;i<capacity;++i)
+    for (int i = 0; i < capacity; ++i)
     {
-        bulletpool[i].speed=1500.0f;
-        bulletpool[i].size=12.0f;
-        bulletpool[i].active=false; // whether it's fired
+        bulletpool[i].active = false;
+        bulletpool[i].speed = 0.0f;
+        bulletpool[i].size = 0.0f;
+        bulletpool[i].pos = (Vector2){0.0f, 0.0f};
+        bulletpool[i].dir = (Vector2){0.0f, 0.0f};
+        bulletpool[i].color = WHITE;
     }
 }
-void UpdateBulletPos(Bullet bulletpool[],int capacity,Vector2 plpos,Vector2 mousedir)
+
+// Fire a bullet from player position with weapon properties
+void FireBullet(Bullet bulletpool[], int capacity, Vector2 startPos, Vector2 direction, float speed, float size, Color color)
 {
-    for(int i=0;i<capacity;++i)
+    for (int i = 0; i < capacity; ++i)
     {
-        if(bulletpool[i].active)
+        if (!bulletpool[i].active)
         {
-            bulletpool[i].pos=Vector2Add(bulletpool[i].pos,Vector2Scale(bulletpool[i].dir,bulletpool[i].speed*GetFrameTime()));
-            float distance=Vector2DistanceSqr(bulletpool[i].pos,plpos);
-            if (distance>=2000000.0f) // bullet reach the maximum distance will return to the player
-            {
-                bulletpool[i].active=false;
-            }
+            bulletpool[i].pos = startPos;
+            bulletpool[i].dir = direction;
+            bulletpool[i].speed = speed;
+            bulletpool[i].size = size;
+            bulletpool[i].color = color;
+            bulletpool[i].active = true;
+            break;
         }
     }
-    // Mouse input logic to fire
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+}
+
+// Update bullet physics (movement and lifetime)
+void UpdateBulletPhysics(Bullet bulletpool[], int capacity, Vector2 playerPos)
+{
+    for (int i = 0; i < capacity; ++i)
     {
-        for (int i=0;i<capacity;++i)
+        if (bulletpool[i].active)
         {
-            if(!bulletpool[i].active)
+            // Update position based on direction and speed
+            bulletpool[i].pos = Vector2Add(bulletpool[i].pos, Vector2Scale(bulletpool[i].dir, bulletpool[i].speed * GetFrameTime()));
+            
+            // Deactivate if too far from player
+            float distance = Vector2DistanceSqr(bulletpool[i].pos, playerPos);
+            if (distance >= 2000000.0f)
             {
-                bulletpool[i].pos=plpos;
-                bulletpool[i].dir=mousedir;
-                bulletpool[i].active=true;
-                break;
+                bulletpool[i].active = false;
             }
         }
     }
 }
 
-// Draw fired bulllet
-void DrawBullet(Bullet bulletpool[],int capacity)
+// Draw all active bullets
+void DrawBullet(Bullet bulletpool[], int capacity)
 {
-    for(int i=0;i<capacity;++i)
+    for (int i = 0; i < capacity; ++i)
     {
         if (bulletpool[i].active)
         {
-            DrawCircleV(bulletpool[i].pos,bulletpool[i].size,YELLOW);
+            DrawCircleV(bulletpool[i].pos, bulletpool[i].size, bulletpool[i].color);
         }
     }
 }

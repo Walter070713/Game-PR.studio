@@ -2,17 +2,26 @@
 #define BULLET_H
 #include "raylib.h"
 #include "raymath.h"
-#include "Player.h"
-#include "MouseAim.h"
-typedef struct Enemy Enemy;
+
 typedef struct Bullet{
     Vector2 pos;
     Vector2 dir;
     float size;
     float speed;
+    Color color;
     bool active;
 }Bullet;
-void InitBulletPool(Bullet bulletpool[],int capacity);
-void UpdateBulletPos(Bullet bulletpool[],int capacity,Vector2 plpos,Vector2 mousedir);
-void DrawBullet(Bullet bulletpool[],int capacity);
+
+// Initialize bullet pool
+void InitBulletPool(Bullet bulletpool[], int capacity);
+
+// Update bullet physics (movement and lifetime)
+void UpdateBulletPhysics(Bullet bulletpool[], int capacity, Vector2 playerPos);
+
+// Fire a bullet from player position with given direction
+void FireBullet(Bullet bulletpool[], int capacity, Vector2 startPos, Vector2 direction, float speed, float size, Color color);
+
+// Draw all active bullets
+void DrawBullet(Bullet bulletpool[], int capacity);
+
 #endif

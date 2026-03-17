@@ -1,6 +1,8 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 #include "raylib.h"
+#include "Weapon.h"
+
 typedef struct Player{
     Vector2 pos;
     Vector2 prevpos;
@@ -10,9 +12,11 @@ typedef struct Player{
     float body;
     int health;
     int shield;
-    
+    Weapon weapon;  // Current equipped weapon
 }Player;
-void InitPlayer(Player* pl,Vector2 initpos);
+
+void InitPlayer(Player* pl, Vector2 initpos);
 void UpdatePlayerPos(Player* pl);
 void DrawPlayer(Player* pl);
+
 #endif
