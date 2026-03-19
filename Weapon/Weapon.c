@@ -134,6 +134,7 @@ void UpdateWeapon(Weapon* weapon)
     }
 }
 
+// Get weapon information
 WeaponInfo GetWeaponInfo(const Weapon* weapon)
 {
     WeaponInfo info;
@@ -141,13 +142,31 @@ WeaponInfo GetWeaponInfo(const Weapon* weapon)
     info.totalAmmo = weapon->totalAmmo;
     info.isReloading = weapon->isReloading;
     
-    if (weapon->isReloading) {
+    if (weapon->isReloading) 
+    {
         info.reloadProgress = weapon->reloadTimer / weapon->reloadTime;
-    } else {
+    } 
+    else 
+    {
         info.reloadProgress = 0.0f;
     }
     
     return info;
+}
+
+// Reloading animation
+void DrawReload(WeaponInfo *winfo)
+{
+    if (winfo->isReloading)
+    {
+        DrawText("RELOADING", 10, 230, 30, ORANGE);
+        DrawRectangle(10, 270, (int)(200 * winfo->reloadProgress), 20, ORANGE);
+        DrawRectangleLines(10, 270, 200, 20, WHITE);
+    }
+    else if (winfo->magazine == 0)
+    {
+        DrawText("PRESS R TO RELOAD", 10, 230, 25, RED);
+    }
 }
 
 int GetWeaponBulletPoolSize(const Weapon* weapon)

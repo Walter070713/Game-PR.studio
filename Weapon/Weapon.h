@@ -58,4 +58,6 @@ typedef struct {
 
 WeaponInfo GetWeaponInfo(const Weapon* weapon);
 
+void DrawReload(WeaponInfo *winfo);
+
 #endif

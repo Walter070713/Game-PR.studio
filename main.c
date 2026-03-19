@@ -13,6 +13,7 @@
 #include "Map.h"
 #include "Weapon.h"
 #include "GameStates.h"
+#include "window_setting.h"
 
 // All the code done so far is coded by Walter from 6th Mar to 14th Mar
 // Mostly from 18:30 to 24:00, sometimes to 3:00 am
@@ -20,15 +21,19 @@
 
 
 // Basic window settings
-const int window_width = 2560;
-const int window_height = 1600;
-Vector2 window_center = {(float)window_width/2,(float)window_height/2};
+int window_width = 2560;
+int window_height = 1600;
+bool isFullscreen = false;
+Vector2 window_center;
 
-// Maximum possible bullet slots used by any weapon (pool size must be big enough to cover all weapons)
+// Maximum possible bullet slots used by any weapon
 #define MAX_BULLET_POOL 60
 
 int main(void) {
     const int emy_capacity = 5; // max enemy capacity
+
+    // Initialize window center
+    window_center = (Vector2){(float)window_width/2, (float)window_height/2};
 
     // State Initialization
     GameState currentScreen = STATE_TITLE;
@@ -53,6 +58,9 @@ int main(void) {
 
     while (!WindowShouldClose()) 
     {
+        // Global input handling
+        if (IsKeyPressed(KEY_F11))  ToggleFullscreenMode();
+        
         switch (currentScreen) 
         {
             case STATE_TITLE:
@@ -116,11 +124,33 @@ int main(void) {
                     DrawText("- Use WASD to Move", 100, 200, 30, GRAY);
                     DrawText("- Mouse to Aim and Shoot", 100, 240, 30, GRAY);
                     DrawText("- R to Reload", 100, 280, 30, GRAY);
+                    DrawText("- F11 to Toggle Fullscreen", 100, 320, 30, GRAY);
                     
-                    if (IsOptionClicked("BACK TO MENU", 100, 500, 40, WHITE, GREEN)) 
+                    // Resolution options
+                    DrawText("RESOLUTION:", 100, 380, 40, WHITE);
+                    if (IsOptionClicked("2560 x 1600", 120, 430, 30, WHITE, YELLOW)) 
                     {
-                        currentScreen = STATE_TITLE;
+                        if (isFullscreen) ToggleFullscreenMode(); // Exit fullscreen first
+                        ChangeResolution(2560, 1600, &camera);
                     }
+                    if (IsOptionClicked("3200 x 2000", 120, 470, 30, WHITE, YELLOW)) 
+                    {
+                        if (isFullscreen) ToggleFullscreenMode(); // Exit fullscreen first
+                        ChangeResolution(3200, 2000, &camera);
+                    }
+                    if (IsOptionClicked("1920 x 1080", 120, 510, 30, WHITE, YELLOW)) 
+                    {
+                        if (isFullscreen) ToggleFullscreenMode(); // Exit fullscreen first
+                        ChangeResolution(1920, 1080, &camera);
+                    }
+                    
+                    // Fullscreen toggle
+                    DrawText("DISPLAY:", 100, 570, 40, WHITE);
+                    char* fullscreenText = isFullscreen ? "WINDOWED MODE" : "FULLSCREEN MODE";
+                    if (IsOptionClicked(fullscreenText, 120, 620, 30, WHITE, YELLOW))  ToggleFullscreenMode();
+                    
+                    if (IsOptionClicked("BACK TO MENU", 100, 700, 40, WHITE, GREEN))  currentScreen = STATE_TITLE;
+
                     break;
                 case STATE_GAMEPLAY:
                     BeginMode2D(camera);
@@ -142,17 +172,7 @@ int main(void) {
                     WeaponInfo winfo = GetWeaponInfo(&plyr.weapon);
                     DrawText(TextFormat("Magazine: %d/%d", winfo.magazine, plyr.weapon.maxMagazine), 10, 150, 30, YELLOW);
                     DrawText(TextFormat("Total Ammo: %d", winfo.totalAmmo), 10, 190, 30, YELLOW);
-                    
-                    if (winfo.isReloading)
-                    {
-                        DrawText("RELOADING", 10, 230, 30, ORANGE);
-                        DrawRectangle(10, 270, (int)(200 * winfo.reloadProgress), 20, ORANGE);
-                        DrawRectangleLines(10, 270, 200, 20, WHITE);
-                    }
-                    else if (winfo.magazine == 0)
-                    {
-                        DrawText("PRESS R TO RELOAD", 10, 230, 25, RED);
-                    }
+                    DrawReload(&winfo);
 
                     break;
             }

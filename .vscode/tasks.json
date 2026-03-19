@@ -17,6 +17,7 @@
                 "Collision/Collision.c",
                 "Spawn/Spawn.c",
                 "Map/Map.c",
+                "Basic Settings/window_setting.c",
                 "-o", "game.exe",
                 "-I", "include",
                 "-I", "Player",
