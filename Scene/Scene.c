@@ -48,19 +48,37 @@ bool UpdateScene(Scene* scene) {
 void DrawScene(Scene* scene) {
     if (!scene || !scene->isActive) return;
     
-    // Draw background if available
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+    const float baseWidth = 2560.0f;
+    const float baseHeight = 1600.0f;
+    const float ratioX = (float)screenWidth / baseWidth;
+    const float ratioY = (float)screenHeight / baseHeight;
+    const float contentScale = (ratioX < ratioY) ? ratioX : ratioY;
+
+    // Draw background if available (full-screen)
     if (scene->bgLoaded && scene->backgroundTexture.id != 0) {
-        DrawTexture(scene->backgroundTexture, 0, 0, WHITE);
+        Rectangle source = {0, 0, (float)scene->backgroundTexture.width, (float)scene->backgroundTexture.height};
+        Rectangle dest = {0, 0, (float)screenWidth, (float)screenHeight};
+        Vector2 origin = {0, 0};
+        DrawTexturePro(scene->backgroundTexture, source, dest, origin, 0.0f, WHITE);
     }
     
     // Get current line
     if (scene->currentLineIndex < scene->data->lineCount) {
         SceneLine* currentLine = &scene->data->lines[scene->currentLineIndex];
         
-        // Draw character sprite if available
+        // Draw character sprite if available (scaled with screen ratio)
         if (scene->charLoaded && scene->characterTexture.id != 0) {
-            Vector2 charPos = {currentLine->characterX, currentLine->characterY};
-            DrawTextureEx(scene->characterTexture, charPos, 0.0f, currentLine->characterScale, WHITE);
+            float dw = scene->characterTexture.width * currentLine->characterScale * contentScale;
+            float dh = scene->characterTexture.height * currentLine->characterScale * contentScale;
+            float dx = currentLine->characterX * ratioX;
+            float dy = currentLine->characterY * ratioY;
+
+            Rectangle source = {0, 0, (float)scene->characterTexture.width, (float)scene->characterTexture.height};
+            Rectangle dest = {dx, dy, dw, dh};
+            Vector2 origin = {0, 0};
+            DrawTexturePro(scene->characterTexture, source, dest, origin, 0.0f, WHITE);
         }
     }
     

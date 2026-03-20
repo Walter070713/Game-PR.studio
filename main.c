@@ -172,8 +172,14 @@ int main(void) {
                     DrawMap(room); // room
                     DrawEnemy(enemypool, emy_capacity); // Enemy
                     DrawPlayer(&plyr); // Player
-                    Vector2 WeaponEnd = Vector2Add(plyr.pos, Vector2Scale(mouse.dir, 50.0f)); // To form the player's weapon and make it point to the cursor
-                    DrawLineEx(plyr.pos, WeaponEnd, 8.0f, RED); // Weapon
+                    {
+                        float screenScaleX = (float)GetScreenWidth() / 2560.0f;
+                        float screenScaleY = (float)GetScreenHeight() / 1600.0f;
+                        float screenScale = (screenScaleX < screenScaleY) ? screenScaleX : screenScaleY;
+
+                        Vector2 WeaponEnd = Vector2Add(plyr.pos, Vector2Scale(mouse.dir, 50.0f * screenScale)); // weapon reach adapts with screen
+                        DrawLineEx(plyr.pos, WeaponEnd, 8.0f * screenScale, RED); // Weapon line thickness scales
+                    }
                     DrawBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon)); // Bullet
                     EndMode2D();
                     
