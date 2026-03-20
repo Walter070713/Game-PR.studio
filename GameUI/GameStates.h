@@ -5,6 +5,7 @@ typedef enum {
     STATE_TITLE,
     STATE_SETTINGS,
     STATE_GAMEPLAY,
+    STATE_SCENE,       
     STATE_PAUSE,
     STATE_GAMEOVER
 } GameState;

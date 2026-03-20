@@ -14,6 +14,8 @@
 #include "Weapon.h"
 #include "GameStates.h"
 #include "window_setting.h"
+#include "Scene.h"
+#include "SceneData.h"
 
 // All the code done so far is coded by Walter from 6th Mar to 14th Mar
 // Mostly from 18:30 to 24:00, sometimes to 3:00 am
@@ -37,6 +39,9 @@ int main(void) {
 
     // State Initialization
     GameState currentScreen = STATE_TITLE;
+
+    // Scene system
+    Scene currentScene = {0};
 
     // Game Objects
     Player plyr;
@@ -96,6 +101,14 @@ int main(void) {
                 camera.target = Vector2Lerp(plyr.pos, camera.target, 0.001f); // To keep the player is always at center of the screen
                 
                 break;
+
+            case STATE_SCENE:
+                // Update scene state
+                if (!UpdateScene(&currentScene)) {
+                    // Scene finished, return to gameplay
+                    currentScreen = STATE_GAMEPLAY;
+                }
+                break;
         }
 
         BeginDrawing();
@@ -107,7 +120,9 @@ int main(void) {
                     
                     if (IsOptionClicked("START MISSION", 100, 300, 40, WHITE, YELLOW)) 
                     {
-                        currentScreen = STATE_GAMEPLAY;
+                        // Start opening scene
+                        InitScene(&currentScene, &OpeningScene);
+                        currentScreen = STATE_SCENE;
                     }
                     if (IsOptionClicked("SETTINGS", 100, 380, 40, WHITE, YELLOW)) 
                     {
@@ -174,6 +189,11 @@ int main(void) {
                     DrawText(TextFormat("Total Ammo: %d", winfo.totalAmmo), 10, 190, 30, YELLOW);
                     DrawReload(&winfo);
 
+                    break;
+
+                case STATE_SCENE:
+                    // Draw the scene (dialog system)
+                    DrawScene(&currentScene);
                     break;
             }
         EndDrawing();
