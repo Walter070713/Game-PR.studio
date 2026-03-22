@@ -15,7 +15,7 @@
 #include "GameStates.h"
 #include "window_setting.h"
 #include "Scene.h"
-#include "SceneData.h"
+#include "OpeningPhase.h"
 
 // All the code done so far is coded by Walter from 6th Mar to 14th Mar
 // Mostly from 18:30 to 24:00, sometimes to 3:00 am
@@ -42,6 +42,7 @@ int main(void) {
 
     // Scene system
     Scene currentScene = {0};
+    OpeningFlow openingFlow = {0};
 
     // Game Objects
     Player plyr;
@@ -58,6 +59,7 @@ int main(void) {
     InitEnemy(enemypool, emy_capacity);
     InitCamera(&camera, window_center);
     InitBulletPool(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
+    InitOpeningFlow(&openingFlow);
     InitWindow(window_width, window_height, "GAME by PR.studio");
 
 
@@ -69,7 +71,10 @@ int main(void) {
         switch (currentScreen) 
         {
             case STATE_TITLE:
-                if (IsKeyPressed(KEY_ENTER)) currentScreen = STATE_GAMEPLAY;
+                if (IsKeyPressed(KEY_ENTER)) {
+                    OpeningStartMission(&openingFlow, &currentScene);
+                    currentScreen = STATE_SCENE;
+                }
                 break;
 
             case STATE_SETTINGS:
@@ -80,23 +85,28 @@ int main(void) {
                 UpdatePlayerPos(&plyr); // Player movement logic
                 UpdateWeapon(&plyr.weapon); // Update weapon timers and state
                 UpdatePlayerStats(&plyr); // Update shield regen + hurt timer
-                UpdateSpawner(enemypool, emy_capacity, plyr.pos, &SpawnTimer, SpawnRate, room); // Rebirth enemy
-                UpdateEnemyHorde(enemypool, emy_capacity, plyr.pos); // Enemy movement logic
-                UpdateBulletPhysics(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon), plyr.pos); // Update bullet physics
 
-                // Handle firing
-                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                {
-                    if (FireWeapon(&plyr.weapon))
+                if (UpdateOpeningPeacefulPhase(&openingFlow, &plyr, &room, enemypool, emy_capacity, bulletpool, &SpawnTimer)) {
+                    // Opening-specific peaceful flow already handled this frame.
+                } else {
+                    UpdateSpawner(enemypool, emy_capacity, plyr.pos, &SpawnTimer, SpawnRate, room); // Rebirth enemy
+                    UpdateEnemyHorde(enemypool, emy_capacity, plyr.pos); // Enemy movement logic
+                    UpdateBulletPhysics(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon), plyr.pos); // Update bullet physics
+
+                    // Handle firing
+                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                     {
-                        // Fire a bullet with weapon properties
-                        FireBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon), plyr.pos, mouse.dir, 
-                                plyr.weapon.bulletSpeed, plyr.weapon.bulletSize, plyr.weapon.bulletColor);
+                        if (FireWeapon(&plyr.weapon))
+                        {
+                            // Fire a bullet with weapon properties
+                            FireBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon), plyr.pos, mouse.dir, 
+                                    plyr.weapon.bulletSpeed, plyr.weapon.bulletSize, plyr.weapon.bulletColor);
+                        }
                     }
-                }
 
-                ResolveEnemyCollisions(&plyr, enemypool, emy_capacity, bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
-                ResolveMapCollisions(&plyr, room, enemypool, emy_capacity, bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
+                    ResolveEnemyCollisions(&plyr, enemypool, emy_capacity, bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
+                    ResolveMapCollisions(&plyr, room, enemypool, emy_capacity, bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
+                }
 
                 camera.target = Vector2Lerp(plyr.pos, camera.target, 0.001f); // To keep the player is always at center of the screen
                 
@@ -105,6 +115,19 @@ int main(void) {
             case STATE_SCENE:
                 // Update scene state
                 if (!UpdateScene(&currentScene)) {
+                    if (openingFlow.phase == OPENING_DIALOG) {
+                        OpeningEnterSmallRoomAfterDialog(
+                            &openingFlow,
+                            &room,
+                            &plyr,
+                            bulletpool,
+                            GetWeaponBulletPoolSize(&plyr.weapon),
+                            enemypool,
+                            emy_capacity,
+                            &SpawnTimer
+                        );
+                    }
+
                     // Scene finished, return to gameplay
                     currentScreen = STATE_GAMEPLAY;
                 }
@@ -121,7 +144,7 @@ int main(void) {
                     if (IsOptionClicked("START MISSION", 100, 300, 40, WHITE, YELLOW)) 
                     {
                         // Start opening scene
-                        InitScene(&currentScene, &OpeningScene);
+                        OpeningStartMission(&openingFlow, &currentScene);
                         currentScreen = STATE_SCENE;
                     }
                     if (IsOptionClicked("SETTINGS", 100, 380, 40, WHITE, YELLOW)) 
@@ -170,17 +193,20 @@ int main(void) {
                 case STATE_GAMEPLAY:
                     BeginMode2D(camera);
                     DrawMap(room); // room
-                    DrawEnemy(enemypool, emy_capacity); // Enemy
+                    DrawOpeningWorldOverlay(&openingFlow);
+                    if (OpeningIsCombatEnabled(&openingFlow)) {
+                        DrawEnemy(enemypool, emy_capacity); // Enemy
+                    }
                     DrawPlayer(&plyr); // Player
-                    {
+                    if (OpeningIsCombatEnabled(&openingFlow)) {
                         float screenScaleX = (float)GetScreenWidth() / 2560.0f;
                         float screenScaleY = (float)GetScreenHeight() / 1600.0f;
                         float screenScale = (screenScaleX < screenScaleY) ? screenScaleX : screenScaleY;
 
                         Vector2 WeaponEnd = Vector2Add(plyr.pos, Vector2Scale(mouse.dir, 50.0f * screenScale)); // weapon reach adapts with screen
                         DrawLineEx(plyr.pos, WeaponEnd, 8.0f * screenScale, RED); // Weapon line thickness scales
+                        DrawBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon)); // Bullet
                     }
-                    DrawBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon)); // Bullet
                     EndMode2D();
                     
     
@@ -190,10 +216,13 @@ int main(void) {
                     DrawText(TextFormat("Shield: %d", plyr.shield), 10, 100, 30, BLUE);
                     
                     // Draw weapon info
-                    WeaponInfo winfo = GetWeaponInfo(&plyr.weapon);
-                    DrawText(TextFormat("Magazine: %d/%d", winfo.magazine, plyr.weapon.maxMagazine), 10, 150, 30, YELLOW);
-                    DrawText(TextFormat("Total Ammo: %d", winfo.totalAmmo), 10, 190, 30, YELLOW);
-                    DrawReload(&winfo);
+                    if (OpeningIsCombatEnabled(&openingFlow)) {
+                        WeaponInfo winfo = GetWeaponInfo(&plyr.weapon);
+                        DrawText(TextFormat("Magazine: %d/%d", winfo.magazine, plyr.weapon.maxMagazine), 10, 150, 30, YELLOW);
+                        DrawText(TextFormat("Total Ammo: %d", winfo.totalAmmo), 10, 190, 30, YELLOW);
+                        DrawReload(&winfo);
+                    }
+                    DrawOpeningHUD(&openingFlow, &plyr);
 
                     break;
 

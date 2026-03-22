@@ -7,7 +7,7 @@
 static SceneLine OpeningSceneLines[] = {
     {
         .characterName = "Narrator",
-        .dialogText = "The world was at peace...",
+        .dialogText = "Mission briefing begins now.",
         .backgroundPath ="Assets/backgrounds/RONDYS OFFICE_.png",
         .characterImagePath = "Assets/characters/Main Character/Characters.png",
         .characterX = 0,
@@ -16,7 +16,25 @@ static SceneLine OpeningSceneLines[] = {
     },
     {
         .characterName = "Commander",
-        .dialogText = "We need to prepare for battle!",
+        .dialogText = "Rondy, wake up. We lost contact with the forward team.",
+        .backgroundPath = NULL,
+        .characterImagePath = NULL,
+        .characterX = 400,
+        .characterY = 300,
+        .characterScale = 1.0f
+    },
+    {
+        .characterName = "Rondy",
+        .dialogText = "I am moving now. First checkpoint: exit the prep room.",
+        .backgroundPath = NULL,
+        .characterImagePath = NULL,
+        .characterX = 400,
+        .characterY = 300,
+        .characterScale = 1.0f
+    },
+    {
+        .characterName = "Commander",
+        .dialogText = "Use the marked door. Press E when you are close.",
         .backgroundPath = NULL,
         .characterImagePath = NULL,
         .characterX = 400,
@@ -28,7 +46,7 @@ static SceneLine OpeningSceneLines[] = {
 static SceneData OpeningScene = {
     .sceneName = "opening",
     .lines = OpeningSceneLines,
-    .lineCount = 2
+    .lineCount = 4
 };
 
 // ============== HOW TO CREATE YOUR OWN SCENES ==============

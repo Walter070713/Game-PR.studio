@@ -14,6 +14,8 @@ typedef struct GameMap{
 } GameMap;
 
 GameMap InitRoom(void);
+GameMap InitOpeningSmallRoom(void);
+GameMap InitOpeningBigRoom(void);
 void DrawMap(GameMap map);
 
 #endif
