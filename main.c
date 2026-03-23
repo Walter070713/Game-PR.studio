@@ -33,6 +33,79 @@ Vector2 window_center;
 // Maximum possible bullet slots used by any weapon
 #define MAX_BULLET_POOL 60
 
+static void DrawMiniMap(GameMap room, const Player* player, GameProgression progression,
+    const OpeningFlow* openingFlow, const TutorialFlow* tutorialFlow)
+{
+    if (!player || !openingFlow || !tutorialFlow) return;
+
+    const float panelWidth = 260.0f;
+    const float panelHeight = 190.0f;
+    const float margin = 20.0f;
+    const float innerPad = 10.0f;
+
+    float panelX = (float)GetScreenWidth() - panelWidth - margin;
+    float panelY = margin;
+
+    float mapViewX = panelX + innerPad;
+    float mapViewY = panelY + innerPad;
+    float mapViewW = panelWidth - innerPad * 2.0f;
+    float mapViewH = panelHeight - innerPad * 2.0f;
+
+    float sx = mapViewW / room.bounds.width;
+    float sy = mapViewH / room.bounds.height;
+    float scale = (sx < sy) ? sx : sy;
+
+    float drawW = room.bounds.width * scale;
+    float drawH = room.bounds.height * scale;
+    float drawX = mapViewX + (mapViewW - drawW) * 0.5f;
+    float drawY = mapViewY + (mapViewH - drawH) * 0.5f;
+
+    DrawRectangle((int)panelX, (int)panelY, (int)panelWidth, (int)panelHeight, (Color){18, 22, 28, 140});
+    DrawRectangle((int)drawX, (int)drawY, (int)drawW, (int)drawH, (Color){56, 64, 76, 255});
+
+    for (int i = 0; i < room.WallCount; i++)
+    {
+        Rectangle w = room.walls[i];
+        float wx = drawX + (w.x - room.bounds.x) * scale;
+        float wy = drawY + (w.y - room.bounds.y) * scale;
+        float ww = w.width * scale;
+        float wh = w.height * scale;
+        DrawRectangle((int)wx, (int)wy, (int)ww, (int)wh, GRAY);
+    }
+
+    if (progression.chapter == CHAPTER_OPENING && openingFlow->phase == OPENING_SMALL_ROOM)
+    {
+        float bx = drawX + (openingFlow->interactBlock.x - room.bounds.x) * scale;
+        float by = drawY + (openingFlow->interactBlock.y - room.bounds.y) * scale;
+        float bw = openingFlow->interactBlock.width * scale;
+        float bh = openingFlow->interactBlock.height * scale;
+        DrawRectangle((int)bx, (int)by, (int)bw, (int)bh, SKYBLUE);
+
+        float dx = drawX + (openingFlow->door.x - room.bounds.x) * scale;
+        float dy = drawY + (openingFlow->door.y - room.bounds.y) * scale;
+        float dw = openingFlow->door.width * scale;
+        float dh = openingFlow->door.height * scale;
+        DrawRectangle((int)dx, (int)dy, (int)dw, (int)dh, BROWN);
+    }
+
+    if (progression.chapter == CHAPTER_TUTORIAL && tutorialFlow->isActive)
+    {
+        float tx = drawX + (tutorialFlow->terminal.x - room.bounds.x) * scale;
+        float ty = drawY + (tutorialFlow->terminal.y - room.bounds.y) * scale;
+        float tw = tutorialFlow->terminal.width * scale;
+        float th = tutorialFlow->terminal.height * scale;
+        DrawRectangle((int)tx, (int)ty, (int)tw, (int)th, VIOLET);
+    }
+
+    float px = drawX + (player->pos.x - room.bounds.x) * scale;
+    float py = drawY + (player->pos.y - room.bounds.y) * scale;
+    if (px < drawX) px = drawX;
+    if (px > drawX + drawW) px = drawX + drawW;
+    if (py < drawY) py = drawY;
+    if (py > drawY + drawH) py = drawY + drawH;
+    DrawCircle((int)px, (int)py, 5.0f, YELLOW);
+}
+
 static void StartOpeningMission(OpeningFlow* openingFlow, Scene* currentScene, GameState* currentScreen)
 {
     // Enter story scene mode immediately after mission start.
@@ -181,7 +254,8 @@ int main(void) {
                         break;
                 }
 
-                camera.target = Vector2Lerp(plyr.pos, camera.target, 0.001f); // To keep the player is always at center of the screen
+                // Soul Knight-like camera: player remains centered, void can be visible outside room.
+                camera.target = plyr.pos;
                 
                 break;
             }
@@ -309,6 +383,8 @@ int main(void) {
                         // Basic level label until dedicated level HUD is introduced.
                         DrawText(TextFormat("Level %d", progression.levelIndex), 10, 230, 30, ORANGE);
                     }
+
+                    DrawMiniMap(room, &plyr, progression, &openingFlow, &tutorialFlow);
 
                     break;
                 }

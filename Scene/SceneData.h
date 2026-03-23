@@ -6,10 +6,10 @@
 // ============== OPENING SCENE ==============
 static SceneLine OpeningSceneLines[] = {
     {
-        .characterName = "Narrator",
+        .characterName = "You",
         .dialogText = "Mission briefing begins now.",
-        .backgroundPath ="Assets/backgrounds/RONDYS OFFICE_.png",
-        .characterImagePath = "Assets/characters/Main Character/Characters.png",
+        .backgroundPath =NULL,
+        .characterImagePath = NULL,
         .characterX = 0,
         .characterY = 0,
         .characterScale = 1.0f

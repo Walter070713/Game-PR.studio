@@ -79,7 +79,7 @@ GameMap InitTutorialRoom(void)
 
 void DrawMap(GameMap map) 
 {
-    // Draw the floor
+    // Draw the room floor only (outer void intentionally remains visible).
     DrawRectangleRec(map.bounds, map.FloorColor);
     
     // Draw the internal walls
