@@ -2,6 +2,15 @@
 #include "SceneData.h"
 #include "Collision.h"
 
+static const float kInteractPadding = 20.0f;
+static const float kReminderSeconds = 2.2f;
+
+static bool IsNearInteractable(const Player* player, Rectangle target)
+{
+    if (!player) return false;
+    return CheckCollisionCircleRec(player->pos, player->body + kInteractPadding, target);
+}
+
 static void ResetEnemyPoolToInactive(Enemy enemyPool[], int enemyCapacity)
 {
     for (int i = 0; i < enemyCapacity; i++)
@@ -80,7 +89,7 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
     {
         ResolveMapCollisions(player, *room, enemyPool, 0, bulletPool, 0);
 
-        bool isNearBlock = CheckCollisionCircleRec(player->pos, player->body + 20.0f, flow->interactBlock);
+        bool isNearBlock = IsNearInteractable(player, flow->interactBlock);
         if (!flow->hasInteractedWithBlock && isNearBlock && IsKeyPressed(KEY_E))
         {
             InitScene(scene, &OpeningBlockInteractScene);
@@ -89,12 +98,12 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
             return true;
         }
 
-        bool isNearDoor = CheckCollisionCircleRec(player->pos, player->body + 20.0f, flow->door);
+        bool isNearDoor = IsNearInteractable(player, flow->door);
         if (isNearDoor && IsKeyPressed(KEY_E))
         {
             if (!flow->hasInteractedWithBlock)
             {
-                flow->reminderTimer = 2.2f;
+                flow->reminderTimer = kReminderSeconds;
                 return true;
             }
 
@@ -126,10 +135,22 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
     return false;
 }
 
+bool OpeningIsPeacefulPhase(const OpeningFlow* flow)
+{
+    if (!flow) return false;
+    return flow->phase == OPENING_SMALL_ROOM || flow->phase == OPENING_BIG_ROOM;
+}
+
 bool OpeningIsCombatEnabled(const OpeningFlow* flow)
 {
     if (!flow) return true;
-    return flow->phase != OPENING_SMALL_ROOM && flow->phase != OPENING_BIG_ROOM && flow->phase != OPENING_BLOCK_DIALOG;
+    return !OpeningIsPeacefulPhase(flow) && flow->phase != OPENING_BLOCK_DIALOG;
+}
+
+bool OpeningIsComplete(const OpeningFlow* flow)
+{
+    if (!flow) return false;
+    return flow->phase == OPENING_BIG_ROOM;
 }
 
 void DrawOpeningWorldOverlay(const OpeningFlow* flow)
@@ -151,8 +172,8 @@ void DrawOpeningHUD(const OpeningFlow* flow, const Player* player)
 
     if (flow->phase == OPENING_SMALL_ROOM)
     {
-        bool isNearBlock = CheckCollisionCircleRec(player->pos, player->body + 20.0f, flow->interactBlock);
-        bool isNearDoor = CheckCollisionCircleRec(player->pos, player->body + 20.0f, flow->door);
+        bool isNearBlock = IsNearInteractable(player, flow->interactBlock);
+        bool isNearDoor = IsNearInteractable(player, flow->door);
 
         if (!flow->hasInteractedWithBlock)
         {

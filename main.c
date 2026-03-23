@@ -11,11 +11,12 @@
 #include "Collision.h"
 #include "Spawn.h"
 #include "Map.h"
-#include "Weapon.h"
 #include "GameStates.h"
-#include "window_setting.h"
 #include "Scene.h"
 #include "OpeningPhase.h"
+#include "CombatRuntime.h"
+#include "Progression.h"
+#include "TutorialPhase.h"
 
 // All the code done so far is coded by Walter from 6th Mar to 14th Mar
 // Mostly from 18:30 to 24:00, sometimes to 3:00 am
@@ -31,6 +32,26 @@ Vector2 window_center;
 // Maximum possible bullet slots used by any weapon
 #define MAX_BULLET_POOL 60
 
+static void StartOpeningMission(OpeningFlow* openingFlow, Scene* currentScene, GameState* currentScreen)
+{
+    OpeningStartMission(openingFlow, currentScene);
+    *currentScreen = STATE_SCENE;
+}
+
+static void StartLevelOne(GameProgression* progression, GameMap* room, Player* player,
+    Enemy enemyPool[], int enemyCapacity, Bullet bulletPool[], int bulletCapacity, float* spawnTimer)
+{
+    if (!progression || !room || !player || !enemyPool || !bulletPool || !spawnTimer) return;
+
+    ProgressionSetLevel(progression, 1, true);
+    *room = InitRoom();
+
+    player->pos = (Vector2){room->bounds.x + 240.0f, room->bounds.y + room->bounds.height * 0.5f};
+    player->prevpos = player->pos;
+
+    ResetCombatRuntime(enemyPool, enemyCapacity, bulletPool, bulletCapacity, spawnTimer);
+}
+
 int main(void) {
     const int emy_capacity = 5; // max enemy capacity
 
@@ -43,6 +64,8 @@ int main(void) {
     // Scene system
     Scene currentScene = {0};
     OpeningFlow openingFlow = {0};
+    TutorialFlow tutorialFlow = {0};
+    GameProgression progression = {0};
 
     // Game Objects
     Player plyr;
@@ -60,6 +83,8 @@ int main(void) {
     InitCamera(&camera, window_center);
     InitBulletPool(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
     InitOpeningFlow(&openingFlow);
+    InitTutorialFlow(&tutorialFlow);
+    InitProgression(&progression);
     InitWindow(window_width, window_height, "GAME by PR.studio");
 
 
@@ -72,8 +97,9 @@ int main(void) {
         {
             case STATE_TITLE:
                 if (IsKeyPressed(KEY_ENTER)) {
-                    OpeningStartMission(&openingFlow, &currentScene);
-                    currentScreen = STATE_SCENE;
+                    StartOpeningMission(&openingFlow, &currentScene, &currentScreen);
+                    ProgressionSetOpening(&progression);
+                    InitTutorialFlow(&tutorialFlow);
                 }
                 break;
 
@@ -82,34 +108,67 @@ int main(void) {
                 break;
             case STATE_GAMEPLAY: {
                 bool shouldEnterScene = false;
-                UpdateMouseAim(&mouse, camera, plyr.pos); // Logic to make player keep aiming at where the cursor is
                 UpdatePlayerPos(&plyr); // Player movement logic
-                UpdateWeapon(&plyr.weapon); // Update weapon timers and state
-                UpdatePlayerStats(&plyr); // Update shield regen + hurt timer
 
-                if (UpdateOpeningPeacefulPhase(&openingFlow, &plyr, &room, enemypool, emy_capacity, bulletpool, &SpawnTimer, &currentScene, &shouldEnterScene)) {
-                    // Opening-specific peaceful flow already handled this frame.
-                    if (shouldEnterScene) {
-                        currentScreen = STATE_SCENE;
-                    }
-                } else {
-                    UpdateSpawner(enemypool, emy_capacity, plyr.pos, &SpawnTimer, SpawnRate, room); // Rebirth enemy
-                    UpdateEnemyHorde(enemypool, emy_capacity, plyr.pos); // Enemy movement logic
-                    UpdateBulletPhysics(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon), plyr.pos); // Update bullet physics
-
-                    // Handle firing
-                    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-                    {
-                        if (FireWeapon(&plyr.weapon))
-                        {
-                            // Fire a bullet with weapon properties
-                            FireBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon), plyr.pos, mouse.dir, 
-                                    plyr.weapon.bulletSpeed, plyr.weapon.bulletSize, plyr.weapon.bulletColor);
+                switch (progression.chapter)
+                {
+                    case CHAPTER_OPENING:
+                        if (UpdateOpeningPeacefulPhase(&openingFlow, &plyr, &room, enemypool, emy_capacity, bulletpool, &SpawnTimer, &currentScene, &shouldEnterScene)) {
+                            if (shouldEnterScene) {
+                                currentScreen = STATE_SCENE;
+                            }
                         }
-                    }
 
-                    ResolveEnemyCollisions(&plyr, enemypool, emy_capacity, bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
-                    ResolveMapCollisions(&plyr, room, enemypool, emy_capacity, bulletpool, GetWeaponBulletPoolSize(&plyr.weapon));
+                        if (OpeningIsComplete(&openingFlow)) {
+                            ProgressionSetTutorial(&progression);
+                            StartTutorialFlow(
+                                &tutorialFlow,
+                                &room,
+                                &plyr,
+                                bulletpool,
+                                GetWeaponBulletPoolSize(&plyr.weapon),
+                                enemypool,
+                                emy_capacity,
+                                &SpawnTimer
+                            );
+                        }
+                        break;
+
+                    case CHAPTER_TUTORIAL:
+                        UpdateTutorialFlow(&tutorialFlow, &plyr, &room, enemypool, bulletpool);
+
+                        if (tutorialFlow.isComplete) {
+                            StartLevelOne(
+                                &progression,
+                                &room,
+                                &plyr,
+                                enemypool,
+                                emy_capacity,
+                                bulletpool,
+                                GetWeaponBulletPoolSize(&plyr.weapon),
+                                &SpawnTimer
+                            );
+                        }
+                        break;
+
+                    case CHAPTER_LEVEL:
+                        if (progression.combatEnabled) {
+                            UpdateCombatRuntime(
+                                &plyr,
+                                enemypool,
+                                emy_capacity,
+                                bulletpool,
+                                GetWeaponBulletPoolSize(&plyr.weapon),
+                                &mouse,
+                                camera,
+                                room,
+                                &SpawnTimer,
+                                SpawnRate
+                            );
+                        } else {
+                            ResolveMapCollisions(&plyr, room, enemypool, 0, bulletpool, 0);
+                        }
+                        break;
                 }
 
                 camera.target = Vector2Lerp(plyr.pos, camera.target, 0.001f); // To keep the player is always at center of the screen
@@ -120,16 +179,18 @@ int main(void) {
             case STATE_SCENE:
                 // Update scene state
                 if (!UpdateScene(&currentScene)) {
-                    OpeningHandleSceneComplete(
-                        &openingFlow,
-                        &room,
-                        &plyr,
-                        bulletpool,
-                        GetWeaponBulletPoolSize(&plyr.weapon),
-                        enemypool,
-                        emy_capacity,
-                        &SpawnTimer
-                    );
+                    if (progression.chapter == CHAPTER_OPENING) {
+                        OpeningHandleSceneComplete(
+                            &openingFlow,
+                            &room,
+                            &plyr,
+                            bulletpool,
+                            GetWeaponBulletPoolSize(&plyr.weapon),
+                            enemypool,
+                            emy_capacity,
+                            &SpawnTimer
+                        );
+                    }
 
                     // Scene finished, return to gameplay
                     currentScreen = STATE_GAMEPLAY;
@@ -146,9 +207,9 @@ int main(void) {
                     
                     if (IsOptionClicked("START MISSION", 100, 300, 40, WHITE, YELLOW)) 
                     {
-                        // Start opening scene
-                        OpeningStartMission(&openingFlow, &currentScene);
-                        currentScreen = STATE_SCENE;
+                        StartOpeningMission(&openingFlow, &currentScene, &currentScreen);
+                        ProgressionSetOpening(&progression);
+                        InitTutorialFlow(&tutorialFlow);
                     }
                     if (IsOptionClicked("SETTINGS", 100, 380, 40, WHITE, YELLOW)) 
                     {
@@ -194,40 +255,47 @@ int main(void) {
 
                     break;
                 case STATE_GAMEPLAY:
+                {
+                    bool combatEnabled = progression.chapter == CHAPTER_LEVEL && progression.combatEnabled;
+
                     BeginMode2D(camera);
                     DrawMap(room); // room
-                    DrawOpeningWorldOverlay(&openingFlow);
-                    if (OpeningIsCombatEnabled(&openingFlow)) {
-                        DrawEnemy(enemypool, emy_capacity); // Enemy
+
+                    if (progression.chapter == CHAPTER_OPENING) {
+                        DrawOpeningWorldOverlay(&openingFlow);
+                    } else if (progression.chapter == CHAPTER_TUTORIAL) {
+                        DrawTutorialWorldOverlay(&tutorialFlow);
+                    }
+
+                    if (combatEnabled) {
+                        DrawCombatRuntimeWorld(
+                            &plyr,
+                            enemypool,
+                            emy_capacity,
+                            bulletpool,
+                            GetWeaponBulletPoolSize(&plyr.weapon),
+                            &mouse
+                        );
                     }
                     DrawPlayer(&plyr); // Player
-                    if (OpeningIsCombatEnabled(&openingFlow)) {
-                        float screenScaleX = (float)GetScreenWidth() / 2560.0f;
-                        float screenScaleY = (float)GetScreenHeight() / 1600.0f;
-                        float screenScale = (screenScaleX < screenScaleY) ? screenScaleX : screenScaleY;
-
-                        Vector2 WeaponEnd = Vector2Add(plyr.pos, Vector2Scale(mouse.dir, 50.0f * screenScale)); // weapon reach adapts with screen
-                        DrawLineEx(plyr.pos, WeaponEnd, 8.0f * screenScale, RED); // Weapon line thickness scales
-                        DrawBullet(bulletpool, GetWeaponBulletPoolSize(&plyr.weapon)); // Bullet
-                    }
                     EndMode2D();
                     
-    
-                    // Draw HUD - Health and weapon status (after world rendering so it's on top)
                     DrawText(plyr.name, 10, 10, 40, YELLOW);
-                    DrawText(TextFormat("Health: %d", plyr.health), 10, 60, 30, RED);
-                    DrawText(TextFormat("Shield: %d", plyr.shield), 10, 100, 30, BLUE);
-                    
-                    // Draw weapon info
-                    if (OpeningIsCombatEnabled(&openingFlow)) {
-                        WeaponInfo winfo = GetWeaponInfo(&plyr.weapon);
-                        DrawText(TextFormat("Magazine: %d/%d", winfo.magazine, plyr.weapon.maxMagazine), 10, 150, 30, YELLOW);
-                        DrawText(TextFormat("Total Ammo: %d", winfo.totalAmmo), 10, 190, 30, YELLOW);
-                        DrawReload(&winfo);
+
+                    if (combatEnabled) {
+                        DrawCombatRuntimeHUD(&plyr);
                     }
-                    DrawOpeningHUD(&openingFlow, &plyr);
+
+                    if (progression.chapter == CHAPTER_OPENING) {
+                        DrawOpeningHUD(&openingFlow, &plyr);
+                    } else if (progression.chapter == CHAPTER_TUTORIAL) {
+                        DrawTutorialHUD(&tutorialFlow, &plyr);
+                    } else {
+                        DrawText(TextFormat("Level %d", progression.levelIndex), 10, 230, 30, ORANGE);
+                    }
 
                     break;
+                }
 
                 case STATE_SCENE:
                     // Draw the scene (dialog system)
