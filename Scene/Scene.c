@@ -1,6 +1,8 @@
 #include "Scene.h"
 #include <stdio.h>
 
+static const char* kDialogBoxTexturePath = "Assets/UI/Dialogue Box.png";
+
 // Internal helper functions
 static void LoadSceneTextures(Scene* scene);
 static void UnloadSceneTextures(Scene* scene);
@@ -16,14 +18,22 @@ void InitScene(Scene* scene, SceneData* sceneData) {
     
     scene->backgroundTexture = (Texture2D){0};
     scene->characterTexture = (Texture2D){0};
+    scene->dialogBoxTexture = (Texture2D){0};
     scene->bgLoaded = false;
     scene->charLoaded = false;
+    scene->dialogBoxLoaded = false;
     
     // Default UI settings
     scene->dialogBoxHeight = 250.0f;
     scene->fontSize = 24;
     scene->textColor = WHITE;
     scene->boxColor = (Color){40, 40, 40, 220};  // Semi-transparent dark
+
+    // Load reusable dialog panel texture once per scene.
+    if (FileExists(kDialogBoxTexturePath)) {
+        scene->dialogBoxTexture = LoadTexture(kDialogBoxTexturePath);
+        scene->dialogBoxLoaded = true;
+    }
     
     // Load textures for first line
     LoadSceneTextures(scene);
@@ -168,6 +178,10 @@ static void UnloadSceneTextures(Scene* scene) {
         UnloadTexture(scene->characterTexture);
         scene->charLoaded = false;
     }
+    if (scene->dialogBoxLoaded && scene->dialogBoxTexture.id != 0) {
+        UnloadTexture(scene->dialogBoxTexture);
+        scene->dialogBoxLoaded = false;
+    }
 }
 
 static void DrawDialogBox(Scene* scene) {
@@ -177,10 +191,18 @@ static void DrawDialogBox(Scene* scene) {
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
     
-    // Draw semi-transparent dialog box at bottom
     float boxY = screenHeight - scene->dialogBoxHeight;
-    DrawRectangle(0, (int)boxY, screenWidth, (int)scene->dialogBoxHeight, scene->boxColor);
-    DrawRectangleLines(0, (int)boxY, screenWidth, (int)scene->dialogBoxHeight, YELLOW);
+
+    // Prefer textured dialog panel to match character/background rendering style.
+    if (scene->dialogBoxLoaded && scene->dialogBoxTexture.id != 0) {
+        Rectangle source = {0, 0, (float)scene->dialogBoxTexture.width, (float)scene->dialogBoxTexture.height};
+        Rectangle dest = {0, boxY, (float)screenWidth, scene->dialogBoxHeight};
+        DrawTexturePro(scene->dialogBoxTexture, source, dest, (Vector2){0, 0}, 0.0f, WHITE);
+    } else {
+        // Fallback when texture asset is missing.
+        DrawRectangle(0, (int)boxY, screenWidth, (int)scene->dialogBoxHeight, scene->boxColor);
+        DrawRectangleLines(0, (int)boxY, screenWidth, (int)scene->dialogBoxHeight, YELLOW);
+    }
     
     // Draw character name
     float nameX = 20.0f;

@@ -32,8 +32,10 @@ typedef struct {
     // Loaded textures (cached during scene)
     Texture2D backgroundTexture;
     Texture2D characterTexture;
+    Texture2D dialogBoxTexture;
     bool bgLoaded;
     bool charLoaded;
+    bool dialogBoxLoaded;
     
     // UI parameters
     float dialogBoxHeight;          // Height of dialog box at bottom

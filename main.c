@@ -23,10 +23,6 @@
 // - STATE_GAMEPLAY is chapter-driven (Opening -> Tutorial -> Level).
 // - Opening/Tutorial are peaceful objective flows; Level enables combat runtime.
 
-// All the code done so far is coded by Walter from 6th Mar to 14th Mar
-// Mostly from 18:30 to 24:00, sometimes to 3:00 am
-// Weapon system on 17th Mar
-
 
 // Basic window settings
 int window_width = 2560;

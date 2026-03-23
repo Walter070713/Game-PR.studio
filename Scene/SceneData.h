@@ -3,7 +3,7 @@
 
 #include "Scene.h"
 
-// ============== EXAMPLE OPENING SCENE ==============
+// ============== OPENING SCENE ==============
 static SceneLine OpeningSceneLines[] = {
     {
         .characterName = "Narrator",
