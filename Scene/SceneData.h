@@ -49,6 +49,33 @@ static SceneData OpeningScene = {
     .lineCount = 4
 };
 
+static SceneLine OpeningBlockInteractLines[] = {
+    {
+        .characterName = "System Console",
+        .dialogText = "Checkpoint terminal online. Door protocol updated.",
+        .backgroundPath = NULL,
+        .characterImagePath = NULL,
+        .characterX = 0,
+        .characterY = 0,
+        .characterScale = 1.0f
+    },
+    {
+        .characterName = "Rondy",
+        .dialogText = "Good. Door access granted. Moving to next room.",
+        .backgroundPath = NULL,
+        .characterImagePath = NULL,
+        .characterX = 0,
+        .characterY = 0,
+        .characterScale = 1.0f
+    }
+};
+
+static SceneData OpeningBlockInteractScene = {
+    .sceneName = "opening_block_interact",
+    .lines = OpeningBlockInteractLines,
+    .lineCount = 2
+};
+
 // ============== HOW TO CREATE YOUR OWN SCENES ==============
 /*
 

@@ -12,6 +12,7 @@
 typedef enum {
     OPENING_NOT_STARTED,
     OPENING_DIALOG,
+    OPENING_BLOCK_DIALOG,
     OPENING_SMALL_ROOM,
     OPENING_BIG_ROOM
 } OpeningPhase;
@@ -19,14 +20,18 @@ typedef enum {
 typedef struct {
     OpeningPhase phase;
     Rectangle door;
+    Rectangle interactBlock;
+    bool hasInteractedWithBlock;
+    float reminderTimer;
 } OpeningFlow;
 
 void InitOpeningFlow(OpeningFlow* flow);
 void OpeningStartMission(OpeningFlow* flow, Scene* scene);
-void OpeningEnterSmallRoomAfterDialog(OpeningFlow* flow, GameMap* room, Player* player,
-    Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer);
 bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room,
-    Enemy enemyPool[], int enemyCapacity, Bullet bulletPool[], float* spawnTimer);
+    Enemy enemyPool[], int enemyCapacity, Bullet bulletPool[], float* spawnTimer, Scene* scene,
+    bool* shouldEnterScene);
+void OpeningHandleSceneComplete(OpeningFlow* flow, GameMap* room, Player* player,
+    Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer);
 
 bool OpeningIsCombatEnabled(const OpeningFlow* flow);
 void DrawOpeningWorldOverlay(const OpeningFlow* flow);

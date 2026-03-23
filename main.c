@@ -80,14 +80,18 @@ int main(void) {
             case STATE_SETTINGS:
                 if (IsKeyPressed(KEY_ESCAPE)) currentScreen = STATE_TITLE;
                 break;
-            case STATE_GAMEPLAY:
+            case STATE_GAMEPLAY: {
+                bool shouldEnterScene = false;
                 UpdateMouseAim(&mouse, camera, plyr.pos); // Logic to make player keep aiming at where the cursor is
                 UpdatePlayerPos(&plyr); // Player movement logic
                 UpdateWeapon(&plyr.weapon); // Update weapon timers and state
                 UpdatePlayerStats(&plyr); // Update shield regen + hurt timer
 
-                if (UpdateOpeningPeacefulPhase(&openingFlow, &plyr, &room, enemypool, emy_capacity, bulletpool, &SpawnTimer)) {
+                if (UpdateOpeningPeacefulPhase(&openingFlow, &plyr, &room, enemypool, emy_capacity, bulletpool, &SpawnTimer, &currentScene, &shouldEnterScene)) {
                     // Opening-specific peaceful flow already handled this frame.
+                    if (shouldEnterScene) {
+                        currentScreen = STATE_SCENE;
+                    }
                 } else {
                     UpdateSpawner(enemypool, emy_capacity, plyr.pos, &SpawnTimer, SpawnRate, room); // Rebirth enemy
                     UpdateEnemyHorde(enemypool, emy_capacity, plyr.pos); // Enemy movement logic
@@ -111,22 +115,21 @@ int main(void) {
                 camera.target = Vector2Lerp(plyr.pos, camera.target, 0.001f); // To keep the player is always at center of the screen
                 
                 break;
+            }
 
             case STATE_SCENE:
                 // Update scene state
                 if (!UpdateScene(&currentScene)) {
-                    if (openingFlow.phase == OPENING_DIALOG) {
-                        OpeningEnterSmallRoomAfterDialog(
-                            &openingFlow,
-                            &room,
-                            &plyr,
-                            bulletpool,
-                            GetWeaponBulletPoolSize(&plyr.weapon),
-                            enemypool,
-                            emy_capacity,
-                            &SpawnTimer
-                        );
-                    }
+                    OpeningHandleSceneComplete(
+                        &openingFlow,
+                        &room,
+                        &plyr,
+                        bulletpool,
+                        GetWeaponBulletPoolSize(&plyr.weapon),
+                        enemypool,
+                        emy_capacity,
+                        &SpawnTimer
+                    );
 
                     // Scene finished, return to gameplay
                     currentScreen = STATE_GAMEPLAY;
