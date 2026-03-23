@@ -2,15 +2,18 @@
 #include "SceneData.h"
 #include "Collision.h"
 
+// Shared tuning values for opening interaction range and reminder display.
 static const float kInteractPadding = 20.0f;
 static const float kReminderSeconds = 2.2f;
 
+// Helper for circular interaction checks against rectangular interactables.
 static bool IsNearInteractable(const Player* player, Rectangle target)
 {
     if (!player) return false;
     return CheckCollisionCircleRec(player->pos, player->body + kInteractPadding, target);
 }
 
+// Opening phases never spawn enemies, so keep pool inactive.
 static void ResetEnemyPoolToInactive(Enemy enemyPool[], int enemyCapacity)
 {
     for (int i = 0; i < enemyCapacity; i++)
@@ -25,6 +28,7 @@ void InitOpeningFlow(OpeningFlow* flow)
 {
     if (!flow) return;
 
+    // Default to inactive until Start Mission is triggered.
     flow->phase = OPENING_NOT_STARTED;
     flow->door = (Rectangle){0};
     flow->interactBlock = (Rectangle){0};
@@ -36,16 +40,20 @@ void OpeningStartMission(OpeningFlow* flow, Scene* scene)
 {
     if (!flow || !scene) return;
 
+    // Start opening narrative scene and enter opening chapter state.
     InitScene(scene, &OpeningScene);
     flow->phase = OPENING_DIALOG;
 }
 
+// Internal setup for the first playable opening room.
 static void EnterOpeningSmallRoom(OpeningFlow* flow, GameMap* room, Player* player,
     Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer)
 {
     if (!flow || !room || !player || !bulletPool || !enemyPool || !spawnTimer) return;
 
     *room = InitOpeningSmallRoom();
+
+    // Door unlock is gated by the console interaction.
     flow->door = (Rectangle){
         room->bounds.x + room->bounds.width - 20.0f,
         room->bounds.y + room->bounds.height * 0.5f - 130.0f,
@@ -77,8 +85,10 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
 {
     if (!flow || !player || !room || !enemyPool || !bulletPool || !spawnTimer || !scene || !shouldEnterScene) return false;
 
+    // Output flag tells main.c whether to switch from gameplay to scene mode.
     *shouldEnterScene = false;
 
+    // Decay door reminder text timer every frame.
     if (flow->reminderTimer > 0.0f)
     {
         flow->reminderTimer -= GetFrameTime();
@@ -87,8 +97,10 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
 
     if (flow->phase == OPENING_SMALL_ROOM)
     {
+        // Keep opening room peaceful: map collision only.
         ResolveMapCollisions(player, *room, enemyPool, 0, bulletPool, 0);
 
+        // Block interaction triggers a short dialog scene.
         bool isNearBlock = IsNearInteractable(player, flow->interactBlock);
         if (!flow->hasInteractedWithBlock && isNearBlock && IsKeyPressed(KEY_E))
         {
@@ -98,6 +110,7 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
             return true;
         }
 
+        // Door interaction remains locked until block interaction is done.
         bool isNearDoor = IsNearInteractable(player, flow->door);
         if (isNearDoor && IsKeyPressed(KEY_E))
         {
@@ -123,11 +136,13 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
 
     if (flow->phase == OPENING_BLOCK_DIALOG)
     {
+        // Scene system owns this temporary phase.
         return true;
     }
 
     if (flow->phase == OPENING_BIG_ROOM)
     {
+        // Big room remains peaceful until tutorial handoff.
         ResolveMapCollisions(player, *room, enemyPool, 0, bulletPool, 0);
         return true;
     }
@@ -159,6 +174,7 @@ void DrawOpeningWorldOverlay(const OpeningFlow* flow)
 
     if (flow->phase == OPENING_SMALL_ROOM)
     {
+        // Render interaction anchors for opening objective.
         DrawRectangleRec(flow->interactBlock, (Color){70, 110, 150, 255});
         DrawRectangleLinesEx(flow->interactBlock, 3.0f, flow->hasInteractedWithBlock ? GREEN : SKYBLUE);
         DrawRectangleRec(flow->door, (Color){180, 120, 60, 255});
@@ -172,6 +188,7 @@ void DrawOpeningHUD(const OpeningFlow* flow, const Player* player)
 
     if (flow->phase == OPENING_SMALL_ROOM)
     {
+        // Contextual instructions based on current opening objective.
         bool isNearBlock = IsNearInteractable(player, flow->interactBlock);
         bool isNearDoor = IsNearInteractable(player, flow->door);
 
@@ -218,10 +235,12 @@ void OpeningHandleSceneComplete(OpeningFlow* flow, GameMap* room, Player* player
 
     if (flow->phase == OPENING_DIALOG)
     {
+        // Narrative briefing complete -> spawn in opening small room.
         EnterOpeningSmallRoom(flow, room, player, bulletPool, bulletPoolSize, enemyPool, enemyCapacity, spawnTimer);
     }
     else if (flow->phase == OPENING_BLOCK_DIALOG)
     {
+        // Console dialog complete -> unlock door objective.
         flow->hasInteractedWithBlock = true;
         flow->phase = OPENING_SMALL_ROOM;
         flow->reminderTimer = 0.0f;

@@ -1,5 +1,6 @@
 #include "Map.h"
 
+// Generic map constructor used by all chapter/level room presets.
 GameMap CreateMapLayout(Rectangle bounds, Color floorColor, Color wallColor)
 {
     GameMap map = {0};
@@ -10,6 +11,7 @@ GameMap CreateMapLayout(Rectangle bounds, Color floorColor, Color wallColor)
     return map;
 }
 
+// Adds one wall safely; returns false when MAX_WALLS is reached.
 bool AddMapWall(GameMap* map, Rectangle wall)
 {
     if (!map || map->WallCount >= MAX_WALLS) return false;
@@ -19,6 +21,7 @@ bool AddMapWall(GameMap* map, Rectangle wall)
 
 GameMap InitRoom(void)
  {
+    // Level-combat default arena.
     GameMap map = CreateMapLayout((Rectangle){1000, 1000, 2400, 1800}, DARKGRAY, GRAY);
 
     AddMapWall(&map, (Rectangle){1400, 1400, 200, 200});
@@ -30,6 +33,7 @@ GameMap InitRoom(void)
 
 GameMap InitOpeningSmallRoom(void)
 {
+    // Opening room 1: compact traversal and interaction space.
     GameMap map = CreateMapLayout(
         (Rectangle){1000, 1000, 1300, 900},
         (Color){44, 49, 56, 255},
@@ -43,6 +47,7 @@ GameMap InitOpeningSmallRoom(void)
 
 GameMap InitOpeningBigRoom(void)
 {
+    // Opening room 2: larger peaceful area before tutorial handoff.
     GameMap map = CreateMapLayout(
         (Rectangle){1000, 900, 3000, 2100},
         (Color){34, 44, 52, 255},
@@ -58,6 +63,7 @@ GameMap InitOpeningBigRoom(void)
 
 GameMap InitTutorialRoom(void)
 {
+    // Tutorial room: simple pathing plus one terminal objective zone.
     GameMap map = CreateMapLayout(
         (Rectangle){950, 950, 2400, 1700},
         (Color){39, 44, 58, 255},

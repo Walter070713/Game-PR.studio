@@ -3,30 +3,36 @@
 #include "Spawn.h"
 #include "Collision.h"
 
+// Full combat simulation step for level chapters.
 void UpdateCombatRuntime(Player* player, Enemy enemyPool[], int enemyCapacity,
     Bullet bulletPool[], int bulletCapacity, MseAim* mouse, Camera2D camera,
     GameMap room, float* spawnTimer, float spawnRate)
 {
     if (!player || !enemyPool || !bulletPool || !mouse || !spawnTimer) return;
 
+    // Update aim, weapon state, and player combat stats.
     UpdateMouseAim(mouse, camera, player->pos);
     UpdateWeapon(&player->weapon);
     UpdatePlayerStats(player);
 
+    // Spawn/update enemies and bullet physics.
     UpdateSpawner(enemyPool, enemyCapacity, player->pos, spawnTimer, spawnRate, room);
     UpdateEnemyHorde(enemyPool, enemyCapacity, player->pos);
     UpdateBulletPhysics(bulletPool, bulletCapacity, player->pos);
 
+    // Fire one shot on click if weapon gate allows it.
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && FireWeapon(&player->weapon))
     {
         FireBullet(bulletPool, bulletCapacity, player->pos, mouse->dir,
             player->weapon.bulletSpeed, player->weapon.bulletSize, player->weapon.bulletColor);
     }
 
+    // Resolve combat and world collisions after movement/attacks.
     ResolveEnemyCollisions(player, enemyPool, enemyCapacity, bulletPool, bulletCapacity);
     ResolveMapCollisions(player, room, enemyPool, enemyCapacity, bulletPool, bulletCapacity);
 }
 
+// Draw combat-only world elements (enemies, weapon indicator, bullets).
 void DrawCombatRuntimeWorld(Player* player, Enemy enemyPool[], int enemyCapacity,
     Bullet bulletPool[], int bulletCapacity, MseAim* mouse)
 {
@@ -34,6 +40,7 @@ void DrawCombatRuntimeWorld(Player* player, Enemy enemyPool[], int enemyCapacity
 
     DrawEnemy(enemyPool, enemyCapacity);
 
+    // Weapon direction line scales with display to keep visual consistency.
     {
         float screenScaleX = (float)GetScreenWidth() / 2560.0f;
         float screenScaleY = (float)GetScreenHeight() / 1600.0f;
@@ -46,6 +53,7 @@ void DrawCombatRuntimeWorld(Player* player, Enemy enemyPool[], int enemyCapacity
     DrawBullet(bulletPool, bulletCapacity);
 }
 
+// Draw combat-only HUD values.
 void DrawCombatRuntimeHUD(Player* player)
 {
     if (!player) return;
@@ -59,6 +67,7 @@ void DrawCombatRuntimeHUD(Player* player)
     DrawReload(&winfo);
 }
 
+// Reinitialize combat pools when entering a new chapter/level.
 void ResetCombatRuntime(Enemy enemyPool[], int enemyCapacity,
     Bullet bulletPool[], int bulletCapacity, float* spawnTimer)
 {

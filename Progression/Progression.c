@@ -1,5 +1,6 @@
 #include "Progression.h"
 
+// Initialize game flow at opening chapter with combat disabled.
 void InitProgression(GameProgression* progression)
 {
     if (!progression) return;
@@ -9,6 +10,7 @@ void InitProgression(GameProgression* progression)
     progression->combatEnabled = false;
 }
 
+// Explicit setter for starting/restarting opening chapter.
 void ProgressionSetOpening(GameProgression* progression)
 {
     if (!progression) return;
@@ -18,6 +20,7 @@ void ProgressionSetOpening(GameProgression* progression)
     progression->combatEnabled = false;
 }
 
+// Tutorial chapter is objective-based and non-combat.
 void ProgressionSetTutorial(GameProgression* progression)
 {
     if (!progression) return;
@@ -27,6 +30,7 @@ void ProgressionSetTutorial(GameProgression* progression)
     progression->combatEnabled = false;
 }
 
+// Level chapter supports configurable combat toggle and index.
 void ProgressionSetLevel(GameProgression* progression, int levelIndex, bool combatEnabled)
 {
     if (!progression) return;

@@ -18,6 +18,11 @@
 #include "Progression.h"
 #include "TutorialPhase.h"
 
+// Main architecture:
+// - STATE_TITLE / STATE_SETTINGS / STATE_SCENE are UI-driven states.
+// - STATE_GAMEPLAY is chapter-driven (Opening -> Tutorial -> Level).
+// - Opening/Tutorial are peaceful objective flows; Level enables combat runtime.
+
 // All the code done so far is coded by Walter from 6th Mar to 14th Mar
 // Mostly from 18:30 to 24:00, sometimes to 3:00 am
 // Weapon system on 17th Mar
@@ -34,6 +39,7 @@ Vector2 window_center;
 
 static void StartOpeningMission(OpeningFlow* openingFlow, Scene* currentScene, GameState* currentScreen)
 {
+    // Enter story scene mode immediately after mission start.
     OpeningStartMission(openingFlow, currentScene);
     *currentScreen = STATE_SCENE;
 }
@@ -43,6 +49,7 @@ static void StartLevelOne(GameProgression* progression, GameMap* room, Player* p
 {
     if (!progression || !room || !player || !enemyPool || !bulletPool || !spawnTimer) return;
 
+    // Prepare first combat-ready chapter and reset runtime pools.
     ProgressionSetLevel(progression, 1, true);
     *room = InitRoom();
 
@@ -88,7 +95,7 @@ int main(void) {
     InitWindow(window_width, window_height, "GAME by PR.studio");
 
 
-    while (!WindowShouldClose()) 
+    while (!WindowShouldClose())
     {
         // Global input handling
         if (IsKeyPressed(KEY_F11))  ToggleFullscreenMode();
@@ -107,18 +114,21 @@ int main(void) {
                 if (IsKeyPressed(KEY_ESCAPE)) currentScreen = STATE_TITLE;
                 break;
             case STATE_GAMEPLAY: {
+                // Gameplay update pass: chapter routes own logic.
                 bool shouldEnterScene = false;
                 UpdatePlayerPos(&plyr); // Player movement logic
 
                 switch (progression.chapter)
                 {
                     case CHAPTER_OPENING:
+                        // Opening flow may request a temporary scene transition.
                         if (UpdateOpeningPeacefulPhase(&openingFlow, &plyr, &room, enemypool, emy_capacity, bulletpool, &SpawnTimer, &currentScene, &shouldEnterScene)) {
                             if (shouldEnterScene) {
                                 currentScreen = STATE_SCENE;
                             }
                         }
 
+                        // Once opening is complete, move into tutorial chapter.
                         if (OpeningIsComplete(&openingFlow)) {
                             ProgressionSetTutorial(&progression);
                             StartTutorialFlow(
@@ -135,8 +145,10 @@ int main(void) {
                         break;
 
                     case CHAPTER_TUTORIAL:
+                        // Tutorial flow is also peaceful and objective-based.
                         UpdateTutorialFlow(&tutorialFlow, &plyr, &room, enemypool, bulletpool);
 
+                        // Promote to Level 1 after tutorial objective is done.
                         if (tutorialFlow.isComplete) {
                             StartLevelOne(
                                 &progression,
@@ -152,6 +164,7 @@ int main(void) {
                         break;
 
                     case CHAPTER_LEVEL:
+                        // Combat runtime is isolated to level chapters.
                         if (progression.combatEnabled) {
                             UpdateCombatRuntime(
                                 &plyr,
@@ -166,6 +179,7 @@ int main(void) {
                                 SpawnRate
                             );
                         } else {
+                            // Fallback for non-combat levels: movement and map collision only.
                             ResolveMapCollisions(&plyr, room, enemypool, 0, bulletpool, 0);
                         }
                         break;
@@ -179,6 +193,7 @@ int main(void) {
             case STATE_SCENE:
                 // Update scene state
                 if (!UpdateScene(&currentScene)) {
+                    // Scene completion hook per chapter; opening currently owns scene callbacks.
                     if (progression.chapter == CHAPTER_OPENING) {
                         OpeningHandleSceneComplete(
                             &openingFlow,
@@ -198,6 +213,7 @@ int main(void) {
                 break;
         }
 
+        // Render pass follows current game state.
         BeginDrawing();
             ClearBackground(BLACK);
             switch (currentScreen) 
@@ -256,14 +272,17 @@ int main(void) {
                     break;
                 case STATE_GAMEPLAY:
                 {
+                    // Gameplay render pass mirrors chapter ownership.
                     bool combatEnabled = progression.chapter == CHAPTER_LEVEL && progression.combatEnabled;
 
                     BeginMode2D(camera);
                     DrawMap(room); // room
 
                     if (progression.chapter == CHAPTER_OPENING) {
+                        // Opening world cues (door + console block).
                         DrawOpeningWorldOverlay(&openingFlow);
                     } else if (progression.chapter == CHAPTER_TUTORIAL) {
+                        // Tutorial world cue (terminal).
                         DrawTutorialWorldOverlay(&tutorialFlow);
                     }
 
@@ -291,6 +310,7 @@ int main(void) {
                     } else if (progression.chapter == CHAPTER_TUTORIAL) {
                         DrawTutorialHUD(&tutorialFlow, &plyr);
                     } else {
+                        // Basic level label until dedicated level HUD is introduced.
                         DrawText(TextFormat("Level %d", progression.levelIndex), 10, 230, 30, ORANGE);
                     }
 
