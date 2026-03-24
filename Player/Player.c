@@ -38,5 +38,13 @@ void UpdatePlayerPos(Player* pl)
 void DrawPlayer(Player* pl)
 {
     DrawCircleV(pl->pos, pl->body, YELLOW);
-    DrawText(pl->name, pl->pos.x - 35, pl->pos.y - 50, 25, WHITE);
+    {
+        float fontSize = pl->body * 1.6f;
+        if (fontSize < 10.0f) fontSize = 10.0f;
+        if (fontSize > 20.0f) fontSize = 20.0f;
+
+        Vector2 textSize = MeasureTextEx(GetFontDefault(), pl->name, fontSize, 1.0f);
+        Vector2 textPos = {pl->pos.x - textSize.x * 0.5f, pl->pos.y - pl->body - fontSize - 3.0f};
+        DrawTextEx(GetFontDefault(), pl->name, textPos, fontSize, 1.0f, WHITE);
+    }
 }

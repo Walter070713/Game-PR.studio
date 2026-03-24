@@ -173,6 +173,62 @@ void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount,Bullet b[
             }
         }
     }
+    // TMX tile solids collision (walls/furniture/doors/etc.)
+
+    // Player
+    if (IsMapCircleBlocked(pl->pos, pl->body * 0.88f, map.bounds))
+    {
+        Vector2 onlyX = { pl->pos.x, pl->prevpos.y };
+        Vector2 onlyY = { pl->prevpos.x, pl->pos.y };
+
+        if (!IsMapCircleBlocked(onlyX, pl->body * 0.88f, map.bounds))
+        {
+            pl->pos = onlyX;
+        }
+        else if (!IsMapCircleBlocked(onlyY, pl->body * 0.88f, map.bounds))
+        {
+            pl->pos = onlyY;
+        }
+        else
+        {
+            pl->pos = pl->prevpos;
+        }
+    }
+
+    // Enemy
+    for (int i = 0; i < eCount; ++i)
+    {
+        if (!e[i].active) continue;
+
+        if (IsMapCircleBlocked(e[i].pos, e[i].body * 0.88f, map.bounds))
+        {
+            Vector2 onlyX = { e[i].pos.x, e[i].prevpos.y };
+            Vector2 onlyY = { e[i].prevpos.x, e[i].pos.y };
+
+            if (!IsMapCircleBlocked(onlyX, e[i].body * 0.88f, map.bounds))
+            {
+                e[i].pos = onlyX;
+            }
+            else if (!IsMapCircleBlocked(onlyY, e[i].body * 0.88f, map.bounds))
+            {
+                e[i].pos = onlyY;
+            }
+            else
+            {
+                e[i].pos = e[i].prevpos;
+            }
+        }
+    }
+
+    // Bullet
+    for (int j = 0; j < bCount; ++j)
+    {
+        if (b[j].active && IsMapCircleBlocked(b[j].pos, b[j].size, map.bounds))
+        {
+            b[j].active = false;
+        }
+    }
+
     // Outer boundaries collision
 
     // Player
@@ -189,7 +245,7 @@ void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount,Bullet b[
     {
         // Keep X inside
         if (e[i].pos.x < map.bounds.x +e[i].body)  e[i].pos.x = map.bounds.x + e[i].body;
-        if (e[i].pos.x > map.bounds.x + map.bounds.width - e[i].body)  pl->pos.x = map.bounds.x + map.bounds.width - e[i].body;
+        if (e[i].pos.x > map.bounds.x + map.bounds.width - e[i].body)  e[i].pos.x = map.bounds.x + map.bounds.width - e[i].body;
 
         // Keep Y inside
         if (e[i].pos.y < map.bounds.y + e[i].body)  e[i].pos.y = map.bounds.y + e[i].body;

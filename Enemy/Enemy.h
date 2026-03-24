@@ -16,6 +16,7 @@ typedef struct Enemy{
     bool active;
     int damage;
     float flashtime;
+    const char* name;
 }Enemy;
 void InitEnemy(Enemy enemypool[],int emycapacity);
 void UpdateEnemyHorde(Enemy enemypool[],int emycapacity,Vector2 plpos);

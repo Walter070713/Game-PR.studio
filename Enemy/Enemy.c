@@ -12,6 +12,7 @@ void InitEnemy(Enemy enemypool[],int emycapacity)
         enemypool[i].speed=400.0f;
         enemypool[i].body=30.0f; // enemy's size
         enemypool[i].state=WHITE; // the enemy turns red real quick and returns to white when it get hit
+        enemypool[i].name=0; // No name by default
     }
 }
 
@@ -57,6 +58,16 @@ void DrawEnemy(Enemy enemypool[],int emycapacity)
         if (enemypool[i].active)
         {
             DrawCircleV(enemypool[i].pos,enemypool[i].body,enemypool[i].state);
+            // Draw name if it exists (for NPCs)
+            if (enemypool[i].name)
+            {
+                float fontSize = enemypool[i].body * 1.6f;
+                if (fontSize < 10.0f) fontSize = 10.0f;
+                if (fontSize > 20.0f) fontSize = 20.0f;
+                Vector2 textSize = MeasureTextEx(GetFontDefault(), enemypool[i].name, fontSize, 1.0f);
+                Vector2 textPos = {enemypool[i].pos.x - textSize.x * 0.5f, enemypool[i].pos.y - enemypool[i].body - fontSize - 3.0f};
+                DrawTextEx(GetFontDefault(), enemypool[i].name, textPos, fontSize, 1.0f, WHITE);
+            }
         }
     }
 }

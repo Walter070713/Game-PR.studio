@@ -3,6 +3,7 @@
 
 typedef enum {
     STATE_TITLE,
+    STATE_NAME_ENTRY,
     STATE_SETTINGS,
     STATE_GAMEPLAY,
     STATE_SCENE,       

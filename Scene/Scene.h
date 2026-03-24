@@ -40,6 +40,14 @@ typedef struct {
     int fontSize;                   // Font size for dialog
     Color textColor;                // Text color for dialog
     Color boxColor;                 // Background color of dialog box
+
+    // Typewriter effect state
+    int visibleCharCount;           // Number of currently visible chars in active line
+    float typingCharsPerSecond;     // Typewriter speed
+    float typingAccumulator;        // Fractional char accumulator
+    
+    // Background animation
+    float backgroundScrollTime;     // Time for background parallax effect
 } Scene;
 
 // ============== FUNCTION DECLARATIONS ==============

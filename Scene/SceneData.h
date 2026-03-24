@@ -4,77 +4,162 @@
 #include "Scene.h"
 
 // ============== OPENING SCENE ==============
-static SceneLine OpeningSceneLines[] = {
-    {
-        .characterName = "You",
-        .dialogText = "Mission briefing begins now.",
-        .backgroundPath =NULL,
-        .characterImagePath = NULL,
-        .characterX = 0,
-        .characterY = 0,
-        .characterScale = 1.0f
-    },
-    {
-        .characterName = "Commander",
-        .dialogText = "Rondy, wake up. We lost contact with the forward team.",
-        .backgroundPath = NULL,
-        .characterImagePath = NULL,
-        .characterX = 400,
-        .characterY = 300,
-        .characterScale = 1.0f
-    },
-    {
-        .characterName = "Rondy",
-        .dialogText = "I am moving now. First checkpoint: exit the prep room.",
-        .backgroundPath = NULL,
-        .characterImagePath = NULL,
-        .characterX = 400,
-        .characterY = 300,
-        .characterScale = 1.0f
-    },
-    {
-        .characterName = "Commander",
-        .dialogText = "Use the marked door. Press E when you are close.",
-        .backgroundPath = NULL,
-        .characterImagePath = NULL,
-        .characterX = 400,
-        .characterY = 300,
-        .characterScale = 1.0f
-    }
+// All lines belong to one scene: Line 1 = Scene 1, Line 2 = Scene 2, Line 3 = Scene 3, Line 4 = Scene 4, Line 5 = Scene 5, Line 6 = Scene 6
+static SceneLine OpeningWakeNarrationLines[] = {
+   {
+      .characterName = "Narration",
+      .dialogText = "(You are lying on a bed,just wake up)",
+      .backgroundPath = NULL,
+      .characterImagePath = NULL,
+      .characterX = 0,
+      .characterY = 0,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Player",
+      .dialogText = "Where...where am I...",
+      .backgroundPath = NULL,
+      .characterImagePath = NULL,
+      .characterX = 0,
+      .characterY = 0,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Narration",
+      .dialogText = "(You sit up slowly. Look around. Nothing in the room is personal. )",
+      .backgroundPath = "Assets\\backgrounds\\3-SERVER ROOM CHAIR DESK.png",
+      .characterImagePath = NULL,
+      .characterX = 0,
+      .characterY = 0,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Narration",
+      .dialogText = "(No posters. No photos. Just a desk, a chair, like a render that hasn't fully loaded. )",
+      .backgroundPath = "Assets\\backgrounds\\3-SERVER ROOM CHAIR DESK.png",
+      .characterImagePath = NULL,
+      .characterX = 0,
+      .characterY = 0,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Narration",
+      .dialogText = "(You notice something. On the desk, a single sheet of paper. Handwritten:)",
+      .backgroundPath = "Assets\\backgrounds\\3-SERVER ROOM CHAIR DESK.png",
+      .characterImagePath = NULL,
+      .characterX = 0,
+      .characterY = 0,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Paper",
+      .dialogText = "You don't remember me. That's okay. You're not supposed to. Come find me when you're ready.\nps. Rondy",
+      .backgroundPath = "Assets\\backgrounds\\3-SERVER ROOM CHAIR DESK.png",
+      .characterImagePath = NULL,
+      .characterX = 0,
+      .characterY = 0,
+      .characterScale = 1.0f
+   }
 };
 
-static SceneData OpeningScene = {
-    .sceneName = "opening",
-    .lines = OpeningSceneLines,
-    .lineCount = 4
+static SceneData OpeningWakeNarrationScene = {
+   .sceneName = "opening_wake_narration",
+   .lines = OpeningWakeNarrationLines,
+   .lineCount = 6
 };
 
-static SceneLine OpeningBlockInteractLines[] = {
-    {
-        .characterName = "System Console",
-        .dialogText = "Checkpoint terminal online. Door protocol updated.",
-        .backgroundPath = NULL,
-        .characterImagePath = NULL,
-        .characterX = 0,
-        .characterY = 0,
-        .characterScale = 1.0f
-    },
-    {
-        .characterName = "Rondy",
-        .dialogText = "Good. Door access granted. Moving to next room.",
-        .backgroundPath = NULL,
-        .characterImagePath = NULL,
-        .characterX = 0,
-        .characterY = 0,
-        .characterScale = 1.0f
-    }
+// ============== RONDY OFFICE SCENE ==============
+static SceneLine RondyOfficeIntroLines[] = {
+   {
+      .characterName = "Rondy",
+      .dialogText = "Ah. You're awake. Good. I wasn't sure which version would... never mind.",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Default.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "Coffee?",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Coffe.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "**slurp**",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Randy Slurp the coffe.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "You're probably wondering who you are. Where you came from. Why your dorm room looks like that.",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Coffe.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "Here's the thing. I don't know either. Not all of it.",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Default.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "I found you three weeks ago, wandering around the CS building at 3 AM, staring blankly at the wall.",
+      .backgroundPath = "Assets\\backgrounds\\1-SERVER ROOM.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Default.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "You couldn't tell me your name. Couldn't tell me where you lived. So I brought you here. Got you enrolled.",
+      .backgroundPath = "Assets\\backgrounds\\1-SERVER ROOM.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Default.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "Before I tell you what is exactly happening out there, let me teach you some integral SKILLS.",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Default.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   },
+   {
+      .characterName = "Rondy",
+      .dialogText = "Meet you at the tutorial room!",
+      .backgroundPath = "Assets\\backgrounds\\RONDYS OFFICE_.png",
+      .characterImagePath = "Assets\\characters\\Rondy Intro Video\\Rondy Default.png",
+      .characterX = -600,
+      .characterY = 460,
+      .characterScale = 1.0f
+   }
 };
 
-static SceneData OpeningBlockInteractScene = {
-    .sceneName = "opening_block_interact",
-    .lines = OpeningBlockInteractLines,
-    .lineCount = 2
+static SceneData RondyOfficeIntroScene = {
+   .sceneName = "rondy_office_intro",
+   .lines = RondyOfficeIntroLines,
+   .lineCount = 9
 };
+
+// All opening scene dialogs removed - replaced with in-game NPC interaction
 
 // ============== HOW TO CREATE YOUR OWN SCENES ==============
 /*
