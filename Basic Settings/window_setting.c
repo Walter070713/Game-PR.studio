@@ -24,4 +24,8 @@ void ToggleFullscreenMode()
         // Restore window size
         SetWindowSize(window_width, window_height);
     }
+
+    // Safety: keep mouse cursor visible/unlocked after mode switches.
+    EnableCursor();
+    ShowCursor();
 }

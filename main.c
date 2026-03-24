@@ -390,9 +390,15 @@ int main(void) {
                 {
                     if (titleBackgroundLoaded)
                     {
-                        float scrollX = (float)(((int)(GetTime() * 22.0)) % 180) - 90.0f;
+                        float scrollX = sinf((float)GetTime() * 0.36f) * 52.0f;
+                        float scrollY = cosf((float)GetTime() * 0.28f) * 12.0f;
+                        float zoom = 1.14f;
+                        float dw = (float)GetScreenWidth() * zoom;
+                        float dh = (float)GetScreenHeight() * zoom;
+                        float dx = -((dw - (float)GetScreenWidth()) * 0.5f) + scrollX;
+                        float dy = -((dh - (float)GetScreenHeight()) * 0.5f) + scrollY;
                         Rectangle src = {0, 0, (float)titleBackground.width, (float)titleBackground.height};
-                        Rectangle dst = {scrollX, 0, (float)GetScreenWidth(), (float)GetScreenHeight()};
+                        Rectangle dst = {dx, dy, dw, dh};
                         DrawTexturePro(titleBackground, src, dst, (Vector2){0}, 0.0f, WHITE);
                     }
 
