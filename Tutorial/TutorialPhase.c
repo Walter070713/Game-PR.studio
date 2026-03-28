@@ -2,7 +2,9 @@
 #include "Collision.h"
 #include "MouseAim.h"
 #include "Weapon.h"
+#include "CombatRuntime.h"
 
+// Tutorial tuning values for wave size, spawn cadence, and pacing.
 static const float kTutorialSpawnDelaySeconds = 2.0f;
 static const int kTutorialEnemySpawnCount = 4;
 static const float kTutorialEnemySpeed = 68.0f;
@@ -11,6 +13,21 @@ static const float kTutorialEnemySpawnMaxX = 1203.0f;
 static const Vector2 kTutorialPlayerSpawnPoint = {1203.0f, 1157.0f};
 static const int kTutorialTotalWaves = 2;
 
+// Read current mouse aim direction; fallback right when cursor overlaps player.
+static Vector2 GetAimDirection(Camera2D camera, Vector2 playerPos)
+{
+    MseAim mouse = {0};
+    UpdateMouseAim(&mouse, camera, playerPos);
+
+    if (Vector2LengthSqr(mouse.dir) > 0.0001f)
+    {
+        return mouse.dir;
+    }
+
+    return (Vector2){1.0f, 0.0f};
+}
+
+// Check if any live enemies remain in current tutorial wave.
 static bool HasActiveEnemies(const Enemy enemyPool[], int enemyCapacity)
 {
     if (!enemyPool || enemyCapacity <= 0) return false;
@@ -21,6 +38,7 @@ static bool HasActiveEnemies(const Enemy enemyPool[], int enemyCapacity)
     return false;
 }
 
+// Find nearest walkable point around preferred location (ring search).
 static Vector2 FindNearestWalkablePoint(GameMap room, Vector2 preferred)
 {
     float tile = GetMapTileSize();
@@ -58,6 +76,7 @@ static Vector2 FindNearestWalkablePoint(GameMap room, Vector2 preferred)
     return preferred;
 }
 
+// Clamp enemy spawn X and ensure chosen point is walkable.
 static Vector2 FindEnemySpawnPoint(GameMap room, Vector2 preferred)
 {
     float tile = GetMapTileSize();
@@ -71,6 +90,7 @@ static Vector2 FindEnemySpawnPoint(GameMap room, Vector2 preferred)
     return FindNearestWalkablePoint(room, preferred);
 }
 
+// Spawn one tutorial wave in staged positions near map center-left.
 static void SpawnTutorialEnemies(TutorialFlow* flow, GameMap room, Enemy enemyPool[], int enemyCapacity, const Player* player)
 {
     if (!flow || !enemyPool || enemyCapacity <= 0 || !player) return;
@@ -107,20 +127,7 @@ static void SpawnTutorialEnemies(TutorialFlow* flow, GameMap room, Enemy enemyPo
     flow->hintTimer = 6.0f;
 }
 
-// Tutorial remains peaceful, so enemy pool is disabled while active.
-static void ResetEnemyPoolToInactive(Enemy enemyPool[], int enemyCapacity)
-{
-    // Initialize via shared enemy system first, then disable until wave spawn.
-    InitEnemy(enemyPool, enemyCapacity);
-
-    for (int i = 0; i < enemyCapacity; i++)
-    {
-        enemyPool[i].active = false;
-        enemyPool[i].health = 0;
-        enemyPool[i].flashtime = 0.0f;
-    }
-}
-
+// Reset tutorial flow runtime values.
 void InitTutorialFlow(TutorialFlow* flow)
 {
     if (!flow) return;
@@ -134,6 +141,7 @@ void InitTutorialFlow(TutorialFlow* flow)
     flow->totalWaves = kTutorialTotalWaves;
 }
 
+// Enter tutorial chapter: switch map, reset pools, and initialize player combat state.
 void StartTutorialFlow(TutorialFlow* flow, GameMap* room, Player* player,
     Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer)
 {
@@ -158,10 +166,9 @@ void StartTutorialFlow(TutorialFlow* flow, GameMap* room, Player* player,
     }
     player->weapon.lastFireTime = player->weapon.fireRate;
 
-    // Reset combat runtime pools because tutorial does not use combat.
-    InitBulletPool(bulletPool, bulletPoolSize);
-    ResetEnemyPoolToInactive(enemyPool, enemyCapacity);
-    *spawnTimer = 0.0f;
+    // Initialize via shared enemy system first, then disable pools until wave spawn.
+    InitEnemy(enemyPool, enemyCapacity);
+    ResetCombatRuntime(enemyPool, enemyCapacity, bulletPool, bulletPoolSize, spawnTimer);
 
     flow->isActive = true;
     flow->enemiesSpawned = false;
@@ -171,6 +178,7 @@ void StartTutorialFlow(TutorialFlow* flow, GameMap* room, Player* player,
     flow->totalWaves = kTutorialTotalWaves;
 }
 
+// Run tutorial combat loop: fire/update/resolve collisions/wave progression.
 bool UpdateTutorialFlow(TutorialFlow* flow, Player* player, GameMap* room,
     Enemy enemyPool[], int enemyCapacity, Bullet bulletPool[], int bulletCapacity, Camera2D camera)
 {
@@ -180,14 +188,7 @@ bool UpdateTutorialFlow(TutorialFlow* flow, Player* player, GameMap* room,
     UpdatePlayerStats(player);
 
     {
-        MseAim mouse = {0};
-        Vector2 shootDir = {1.0f, 0.0f};
-        UpdateMouseAim(&mouse, camera, player->pos);
-
-        if (Vector2LengthSqr(mouse.dir) > 0.0001f)
-        {
-            shootDir = mouse.dir;
-        }
+        Vector2 shootDir = GetAimDirection(camera, player->pos);
 
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && FireWeapon(&player->weapon))
         {
@@ -229,31 +230,24 @@ bool UpdateTutorialFlow(TutorialFlow* flow, Player* player, GameMap* room,
     return true;
 }
 
-void DrawTutorialWorldOverlay(const TutorialFlow* flow, const Player* player, Enemy enemyPool[], int enemyCapacity,
+// Draw combat entities and player aim line during tutorial.
+void DrawTutorialWorldOverlay(const Player* player, Enemy enemyPool[], int enemyCapacity,
     Bullet bulletPool[], int bulletCapacity, Camera2D camera)
 {
-    (void)flow;
     DrawEnemy(enemyPool, enemyCapacity);
     DrawBullet(bulletPool, bulletCapacity);
 
     if (player)
     {
-        MseAim mouse = {0};
-        Vector2 aimDir = {1.0f, 0.0f};
-        UpdateMouseAim(&mouse, camera, player->pos);
-
-        if (Vector2LengthSqr(mouse.dir) > 0.0001f)
-        {
-            aimDir = mouse.dir;
-        }
+        Vector2 aimDir = GetAimDirection(camera, player->pos);
         Vector2 weaponEnd = Vector2Add(player->pos, Vector2Scale(aimDir, player->body * 2.2f));
         DrawLineEx(player->pos, weaponEnd, player->body * 0.4f, RED);
     }
 }
 
-void DrawTutorialHUD(const TutorialFlow* flow, const Player* player)
+// Draw wave status and tutorial control prompts.
+void DrawTutorialHUD(const TutorialFlow* flow)
 {
-    (void)player;
     if (!flow || !flow->isActive) return;
 
     if (!flow->enemiesSpawned)

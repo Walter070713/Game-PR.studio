@@ -50,6 +50,30 @@ typedef struct {
     float backgroundScrollTime;     // Time for background parallax effect
 } Scene;
 
+/**
+ * Load scene/dialog lines from an external text file.
+ *
+ * File format (one entry per line, '|' separated):
+ * characterName|dialogText|backgroundPath|characterImagePath|characterX|characterY|characterScale
+ *
+ * Notes:
+ * - Use NONE (or empty field) for backgroundPath/characterImagePath when not used.
+ * - Use \n inside dialogText for manual line breaks.
+ */
+bool LoadSceneDataFromFile(const char* sceneName, const char* filePath, SceneData* outScene);
+
+/**
+ * Release memory allocated by LoadSceneDataFromFile.
+ */
+void UnloadSceneData(SceneData* sceneData);
+
+/**
+ * Read or update the global scene typewriter speed (characters per second).
+ * New scenes read this value during InitScene.
+ */
+float GetSceneTextSpeed(void);
+void SetSceneTextSpeed(float charsPerSecond);
+
 // ============== FUNCTION DECLARATIONS ==============
 
 /**
@@ -77,25 +101,5 @@ void DrawScene(Scene* scene);
  * @param scene - Scene to clean up
  */
 void CleanupScene(Scene* scene);
-
-/**
- * Advance to the next line (called when player presses Enter)
- * @param scene - Scene to advance
- * @return true if more lines, false if scene complete
- */
-bool AdvanceSceneLine(Scene* scene);
-
-/**
- * Check if scene is finished
- * @param scene - Scene to check
- * @return true if all lines have been displayed
- */
-bool IsSceneComplete(Scene* scene);
-
-/**
- * Skip entire scene (goes to end)
- * @param scene - Scene to skip
- */
-void SkipScene(Scene* scene);
 
 #endif

@@ -1,32 +1,25 @@
 #include "OpeningPhase.h"
 #include "SceneData.h"
 #include "Collision.h"
+#include "CombatRuntime.h"
 
-// Shared tuning values for opening interaction range and reminder display.
+// Shared tuning values for opening interactions and map transport target.
 static const float kDoorInteractPadding = 24.0f;
-static const float kReminderSeconds = 2.2f;
 static const Vector2 kTutorialTransportPoint = {1215.0f, 1024.0f};
-static const Vector2 kOpeningDoorPoints[] = {
-    {1159.0f, 1216.0f},
-    {1295.0f, 1154.0f},
-    {1215.0f, 1083.0f}
-};
-static const int kOpeningDoorCount = (int)(sizeof(kOpeningDoorPoints) / sizeof(kOpeningDoorPoints[0]));
 
-static float DistancePointToRectLocal(Vector2 p, Rectangle r)
+// Opening chapter scenes are loaded from external data files once and reused.
+static SceneData gOpeningWakeNarrationScene = {0};
+static SceneData gRondyOfficeIntroScene = {0};
+
+// Load scene data on first use and keep it cached for subsequent entries.
+static bool EnsureSceneLoaded(SceneData* scene, const char* sceneName, const char* sceneFile)
 {
-    float dx = 0.0f;
-    float dy = 0.0f;
-
-    if (p.x < r.x) dx = r.x - p.x;
-    else if (p.x > r.x + r.width) dx = p.x - (r.x + r.width);
-
-    if (p.y < r.y) dy = r.y - p.y;
-    else if (p.y > r.y + r.height) dy = p.y - (r.y + r.height);
-
-    return sqrtf(dx * dx + dy * dy);
+    if (!scene || !sceneName || !sceneFile) return false;
+    if (scene->lines && scene->lineCount > 0) return true;
+    return LoadSceneDataFromFile(sceneName, sceneFile, scene);
 }
 
+// If desired spawn point is blocked, search nearby ring positions for a walkable tile.
 static Vector2 FindNearestWalkablePoint(Vector2 desired, Rectangle mapBounds)
 {
     float tile = GetMapTileSize();
@@ -71,53 +64,19 @@ static bool IsNearInteractable(const Player* player, Rectangle target)
     return CheckCollisionCircleRec(player->pos, player->body + kDoorInteractPadding, target);
 }
 
+// Query nearest interactable door zone around player for hint/prompts.
 static bool IsDoorHintVisible(const Player* player, Rectangle mapBounds, Rectangle* outDoor)
 {
-    (void)mapBounds;
     if (!player || !outDoor) return false;
 
     {
         float tile = GetMapTileSize();
-        float bestDist = tile * 7.0f;
-        bool found = false;
-        Rectangle nearest = {0};
-
-        for (int i = 0; i < kOpeningDoorCount; i++)
-        {
-            float zoneW = tile * 2.0f;
-            float zoneH = tile * 2.0f;
-            float zoneYOffset = 0.0f;
-
-            // Top-middle door is blocked by nearby tiles; give it a wider/down-shifted interaction box.
-            if (i == 2)
-            {
-                zoneW = tile * 3.2f;
-                zoneH = tile * 3.2f;
-                zoneYOffset = tile * 0.9f;
-            }
-
-            Rectangle zone = {
-                kOpeningDoorPoints[i].x - zoneW * 0.5f,
-                kOpeningDoorPoints[i].y - zoneH * 0.5f + zoneYOffset,
-                zoneW,
-                zoneH
-            };
-
-            float dist = DistancePointToRectLocal(player->pos, zone);
-            if (dist <= bestDist)
-            {
-                bestDist = dist;
-                nearest = zone;
-                found = true;
-            }
-        }
-
-        if (!found) return false;
-        *outDoor = nearest;
-        return true;
+        if (tile < 1.0f) tile = 16.0f;
+        return FindNearbyDoorInteractZone(mapBounds, player->pos, tile * 7.0f, outDoor);
     }
 }
 
+// Find Rondy NPC close enough for interaction prompt/trigger.
 static const NPC* FindNearbyRondy(const Player* player, const NPCPool* npcpool)
 {
     if (!player || !npcpool) return NULL;
@@ -137,21 +96,11 @@ static const NPC* FindNearbyRondy(const Player* player, const NPCPool* npcpool)
     return NULL;
 }
 
-// Opening phases never spawn enemies, so keep pool inactive.
-static void ResetEnemyPoolToInactive(Enemy enemyPool[], int enemyCapacity)
-{
-    for (int i = 0; i < enemyCapacity; i++)
-    {
-        enemyPool[i].active = false;
-        enemyPool[i].health = 0;
-        enemyPool[i].flashtime = 0.0f;
-    }
-}
-
 // Forward declaration
 static void EnterOpeningMap(OpeningFlow* flow, GameMap* room, Player* player,
     Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer, NPCPool* npcpool);
 
+// Reset opening flow state before any chapter-specific logic runs.
 void InitOpeningFlow(OpeningFlow* flow)
 {
     if (!flow) return;
@@ -161,37 +110,20 @@ void InitOpeningFlow(OpeningFlow* flow)
     flow->door = (Rectangle){0};
     flow->transportZone = (Rectangle){0};
     flow->transportPoint = kTutorialTransportPoint;
-    flow->reminderTimer = 0.0f;
     flow->movementHintTimer = 5.0f;  // Show hint for 5 seconds initially
     flow->playerHasMovedInOpening = false;
 }
 
-void OpeningStartMission(OpeningFlow* flow, Scene* scene, GameMap* room, Player* player, 
-    Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer, NPCPool* npcpool)
+// Start opening chapter by launching its first narrative scene.
+void OpeningStartMission(OpeningFlow* flow, Scene* scene, const Player* player)
 {
-    if (!flow || !scene || !room || !player || !bulletPool || !enemyPool || !spawnTimer || !npcpool) return;
+    if (!flow || !scene || !player) return;
 
-    (void)room;
-    (void)player;
-    (void)bulletPool;
-    (void)bulletPoolSize;
-    (void)enemyPool;
-    (void)enemyCapacity;
-    (void)spawnTimer;
-    (void)npcpool;
-
-    if (player && player->name && player->name[0] != '\0')
-    {
-        OpeningWakeNarrationLines[1].characterName = player->name;
-    }
-    else
-    {
-        OpeningWakeNarrationLines[1].characterName = "Player";
-    }
+    if (!EnsureSceneLoaded(&gOpeningWakeNarrationScene, "opening_wake_narration", SCENE_FILE_OPENING_WAKE)) return;
 
     SetActiveTMXMap("TEST MAP.tmx");
 
-    InitScene(scene, &OpeningWakeNarrationScene);
+    InitScene(scene, &gOpeningWakeNarrationScene);
     flow->phase = OPENING_DIALOG;
 }
 
@@ -214,8 +146,6 @@ static void EnterOpeningMap(OpeningFlow* flow, GameMap* room, Player* player,
         };
     }
 
-    flow->reminderTimer = 0.0f;
-
     // Spawn player in the down-left small room and ensure it is walkable.
     {
         float tile = GetMapTileSize();
@@ -227,9 +157,7 @@ static void EnterOpeningMap(OpeningFlow* flow, GameMap* room, Player* player,
     }
     player->prevpos = player->pos;
 
-    InitBulletPool(bulletPool, bulletPoolSize);
-    ResetEnemyPoolToInactive(enemyPool, enemyCapacity);
-    *spawnTimer = 0.0f;
+    ResetCombatRuntime(enemyPool, enemyCapacity, bulletPool, bulletPoolSize, spawnTimer);
 
     // Reset and spawn Rondy at the center of the whole big room.
     InitNPCPool(npcpool);
@@ -245,27 +173,21 @@ static void EnterOpeningMap(OpeningFlow* flow, GameMap* room, Player* player,
     flow->phase = OPENING_MAP;
 }
 
+// Drive opening chapter updates while player is in exploration mode.
 bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room,
-    Enemy enemyPool[], int enemyCapacity, Bullet bulletPool[], float* spawnTimer, Scene* scene, NPCPool* npcpool,
+    Scene* scene, NPCPool* npcpool,
     bool* shouldEnterScene, bool* shouldStartTutorial)
 {
-    if (!flow || !player || !room || !enemyPool || !bulletPool || !spawnTimer || !scene || !npcpool || !shouldEnterScene || !shouldStartTutorial) return false;
+    if (!flow || !player || !room || !scene || !npcpool || !shouldEnterScene || !shouldStartTutorial) return false;
 
     // Output flag tells main.c whether to switch from gameplay to scene mode.
     *shouldEnterScene = false;
     *shouldStartTutorial = false;
 
-    // Decay door reminder text timer every frame.
-    if (flow->reminderTimer > 0.0f)
-    {
-        flow->reminderTimer -= GetFrameTime();
-        if (flow->reminderTimer < 0.0f) flow->reminderTimer = 0.0f;
-    }
-
     if (flow->phase == OPENING_MAP || flow->phase == OPENING_COMPLETE)
     {
         // TMX map exploration with interactable doors.
-        ResolveMapCollisions(player, *room, enemyPool, 0, bulletPool, 0);
+        ResolveMapCollisions(player, *room, NULL, 0, NULL, 0);
 
         // Check if player has moved
         if (!flow->playerHasMovedInOpening && (player->pos.x != player->prevpos.x || player->pos.y != player->prevpos.y)) {
@@ -276,7 +198,8 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
         const NPC* nearbyRondy = FindNearbyRondy(player, npcpool);
         if (flow->phase == OPENING_MAP && nearbyRondy && IsKeyPressed(KEY_E))
         {
-            InitScene(scene, &RondyOfficeIntroScene);
+            if (!EnsureSceneLoaded(&gRondyOfficeIntroScene, "rondy_office_intro", SCENE_FILE_RONDY_OFFICE)) return true;
+            InitScene(scene, &gRondyOfficeIntroScene);
             flow->phase = OPENING_RONDY_DIALOG;
             *shouldEnterScene = true;
             return true;
@@ -296,7 +219,6 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
         if ((flow->phase == OPENING_MAP || flow->phase == OPENING_COMPLETE) && isNearDoor && IsKeyPressed(KEY_E))
         {
             OpenDoorInteractZone(flow->door);
-            flow->reminderTimer = 0.0f;
         }
 
         return true;
@@ -305,24 +227,7 @@ bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room
     return false;
 }
 
-bool OpeningIsPeacefulPhase(const OpeningFlow* flow)
-{
-    if (!flow) return false;
-    return flow->phase == OPENING_MAP || flow->phase == OPENING_COMPLETE;
-}
-
-bool OpeningIsCombatEnabled(const OpeningFlow* flow)
-{
-    if (!flow) return true;
-    return false;
-}
-
-bool OpeningIsComplete(const OpeningFlow* flow)
-{
-    if (!flow) return false;
-    return flow->phase == OPENING_COMPLETE;
-}
-
+// Draw opening-only prompts: door interactions, Rondy talk prompt, tutorial transport marker.
 void DrawOpeningWorldOverlay(const OpeningFlow* flow, const Player* player, const NPCPool* npcpool)
 {
     if (!flow || !player || !npcpool) return;
@@ -392,12 +297,7 @@ void DrawOpeningWorldOverlay(const OpeningFlow* flow, const Player* player, cons
     }
 }
 
-void DrawOpeningHUD(const OpeningFlow* flow, const Player* player)
-{
-    (void)flow;
-    (void)player;
-}
-
+// Advance opening chapter when active scene ends.
 void OpeningHandleSceneComplete(OpeningFlow* flow, GameMap* room, Player* player,
     Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer, NPCPool* npcpool)
 {
@@ -412,4 +312,11 @@ void OpeningHandleSceneComplete(OpeningFlow* flow, GameMap* room, Player* player
     {
         flow->phase = OPENING_COMPLETE;
     }
+}
+
+// Release scene data cached by opening chapter.
+void ShutdownOpeningFlowAssets(void)
+{
+    UnloadSceneData(&gOpeningWakeNarrationScene);
+    UnloadSceneData(&gRondyOfficeIntroScene);
 }

@@ -1,0 +1,10 @@
+# characterName|dialogText|backgroundPath|characterImagePath|characterX|characterY|characterScale
+Rondy|Ah. You're awake. Good. I wasn't sure which version would... never mind.|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Rondy Default.png|-600|460|1.0
+Rondy|Coffee?|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Rondy Coffe.png|-600|460|1.0
+Rondy|**slurp**|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Randy Slurp the coffe.png|-600|460|1.0
+Rondy|You're probably wondering who you are. Where you came from. Why your dorm room looks like that.|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Rondy Coffe.png|-600|460|1.0
+Rondy|Here's the thing. I don't know either. Not all of it.|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Rondy Default.png|-600|460|1.0
+Rondy|I found you three weeks ago, wandering around the CS building at 3 AM, staring blankly at the wall.|Assets/backgrounds/1-SERVER ROOM.png|Assets/characters/Rondy Intro Video/Rondy Default.png|-600|460|1.0
+Rondy|You couldn't tell me your name. Couldn't tell me where you lived. So I brought you here. Got you enrolled.|Assets/backgrounds/1-SERVER ROOM.png|Assets/characters/Rondy Intro Video/Rondy Default.png|-600|460|1.0
+Rondy|Before I tell you what is exactly happening out there, let me teach you some integral SKILLS.|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Rondy Default.png|-600|460|1.0
+Rondy|Meet you at the tutorial room!|Assets/backgrounds/RONDYS OFFICE_.png|Assets/characters/Rondy Intro Video/Rondy Default.png|-600|460|1.0

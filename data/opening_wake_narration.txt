@@ -1,0 +1,7 @@
+# characterName|dialogText|backgroundPath|characterImagePath|characterX|characterY|characterScale
+Narration|(You are lying on a bed,just wake up)|NONE|NONE|0|0|1.0
+Player|Where...where am I...|NONE|NONE|0|0|1.0
+Narration|(You sit up slowly. Look around. Nothing in the room is personal.)|Assets/backgrounds/3-SERVER ROOM CHAIR DESK.png|NONE|0|0|1.0
+Narration|(No posters. No photos. Just a desk, a chair, like a render that hasn't fully loaded.)|Assets/backgrounds/3-SERVER ROOM CHAIR DESK.png|NONE|0|0|1.0
+Narration|(You notice something. On the desk, a single sheet of paper. Handwritten:)|Assets/backgrounds/3-SERVER ROOM CHAIR DESK.png|NONE|0|0|1.0
+Paper|You don't remember me. That's okay. You're not supposed to. Come find me when you're ready.\nps. Rondy|Assets/backgrounds/3-SERVER ROOM CHAIR DESK.png|NONE|0|0|1.0

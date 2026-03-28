@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "Weapon.h"
 
+// Player runtime data shared by movement/combat/UI systems.
 typedef struct Player{
     Vector2 pos;
     Vector2 prevpos;
@@ -19,8 +20,13 @@ typedef struct Player{
     Weapon weapon;  // Current equipped weapon
 }Player;
 
+// Initialize player state and default weapon.
 void InitPlayer(Player* pl, Vector2 initpos);
+
+// Apply WASD input and move player in world space.
 void UpdatePlayerPos(Player* pl);
+
+// Draw player body and name label.
 void DrawPlayer(Player* pl);
 
 #endif

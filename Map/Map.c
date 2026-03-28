@@ -6,6 +6,7 @@
 #define RAYTMX_IMPLEMENTATION
 #include "../raytmx.h"
 
+// TMX-backed map system: collision checks, door interaction zones, and map switching.
 #define MAX_OPENED_DOORS 16
 
 static TmxMap* gTestMap = NULL;
@@ -16,77 +17,108 @@ static char gActiveMapPath[260] = "TEST MAP.tmx";
 
 static void EnsureTestMapLoaded(void);
 
-static bool ContainsIgnoreCase(const char* text, const char* needle)
+// Return currently active TMX path for save/load persistence.
+const char* GetActiveTMXMapPath(void)
 {
-    if (!text || !needle) return false;
+    return gActiveMapPath;
+}
 
+// Clear runtime cache of opened door zones.
+void ResetOpenedDoorZones(void)
+{
+    gOpenedDoorCount = 0;
+    for (int i = 0; i < MAX_OPENED_DOORS; i++) gOpenedDoorZones[i] = (Rectangle){0};
+}
+
+// Number of currently stored opened door zones.
+int GetOpenedDoorZoneCount(void)
+{
+    return gOpenedDoorCount;
+}
+
+// Copy opened door zones out for serialization.
+int GetOpenedDoorZones(Rectangle outZones[], int maxCount)
+{
+    int count;
+
+    if (!outZones || maxCount <= 0) return 0;
+
+    count = (gOpenedDoorCount < maxCount) ? gOpenedDoorCount : maxCount;
+    for (int i = 0; i < count; i++) outZones[i] = gOpenedDoorZones[i];
+    return count;
+}
+
+// Restore opened door zones from save data.
+void SetOpenedDoorZones(const Rectangle zones[], int count)
+{
+    int copyCount;
+
+    ResetOpenedDoorZones();
+    if (!zones || count <= 0) return;
+
+    copyCount = (count < MAX_OPENED_DOORS) ? count : MAX_OPENED_DOORS;
+    for (int i = 0; i < copyCount; i++)
     {
-        size_t nlen = strlen(needle);
-        size_t tlen = strlen(text);
-        if (nlen == 0 || nlen > tlen) return false;
+        if (zones[i].width <= 0.0f || zones[i].height <= 0.0f) continue;
+        gOpenedDoorZones[gOpenedDoorCount++] = zones[i];
+    }
+}
 
-        for (size_t i = 0; i + nlen <= tlen; i++)
-        {
-            bool matched = true;
-            for (size_t j = 0; j < nlen; j++)
-            {
-                if (tolower((unsigned char)text[i + j]) != tolower((unsigned char)needle[j]))
-                {
-                    matched = false;
-                    break;
-                }
-            }
-            if (matched) return true;
-        }
+// Case-insensitive equality helper for TMX property names.
+static bool EqualsIgnoreCase(const char* a, const char* b)
+{
+    if (!a || !b) return false;
+
+    while (*a && *b)
+    {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) return false;
+        a++;
+        b++;
+    }
+
+    return *a == '\0' && *b == '\0';
+}
+
+// Read boolean property by name from TMX property array.
+static bool GetBoolPropertyByName(const TmxProperty* properties, uint32_t propertyCount, const char* name, bool* outValue)
+{
+    if (!properties || propertyCount == 0 || !name || !outValue) return false;
+
+    for (uint32_t i = 0; i < propertyCount; i++)
+    {
+        const TmxProperty* prop = &properties[i];
+        if (!prop->name) continue;
+        if (!EqualsIgnoreCase(prop->name, name)) continue;
+        if (prop->type != PROPERTY_TYPE_BOOL) continue;
+
+        *outValue = prop->boolValue;
+        return true;
     }
 
     return false;
 }
 
-static bool IsTilesetSolidByName(const char* name)
+// Find tileset-tile metadata entry by local tile id.
+static const TmxTilesetTile* FindTilesetTileByLocalId(const TmxTileset* ts, uint32_t localId)
 {
-    if (!name) return false;
+    if (!ts) return NULL;
 
-    if (ContainsIgnoreCase(name, "floor") || ContainsIgnoreCase(name, "carpet")) return false;
+    for (uint32_t i = 0; i < ts->tilesLength; i++)
+    {
+        const TmxTilesetTile* tile = &ts->tiles[i];
+        if (tile->id == localId) return tile;
+    }
 
-    return ContainsIgnoreCase(name, "wall") ||
-        ContainsIgnoreCase(name, "door") ||
-        ContainsIgnoreCase(name, "decor") ||
-        ContainsIgnoreCase(name, "tree") ||
-        ContainsIgnoreCase(name, "furniture") ||
-        ContainsIgnoreCase(name, "chair") ||
-        ContainsIgnoreCase(name, "bed") ||
-        ContainsIgnoreCase(name, "table") ||
-        ContainsIgnoreCase(name, "window");
+    return NULL;
 }
 
-static bool IsDoorTileset(const TmxTileset* ts)
+// Check whether layer contains valid tile-layer payload.
+static bool LayerSupportsTileData(const TmxLayer* layer)
 {
-    if (!ts) return false;
-
-    if (ContainsIgnoreCase(ts->name, "door")) return true;
-    if (ts->hasImage && ts->image.source && ContainsIgnoreCase(ts->image.source, "door")) return true;
-
-    return false;
-}
-
-static bool IsLayerCollisionCandidate(const TmxLayer* layer)
-{
-    if (!layer || layer->type != LAYER_TYPE_TILE_LAYER || !layer->visible) return false;
-
-    // Exclude decorative overlays explicitly.
-    if (ContainsIgnoreCase(layer->name, "spider") || ContainsIgnoreCase(layer->name, "web") ||
-        ContainsIgnoreCase(layer->name, "tale") || ContainsIgnoreCase(layer->name, "carpet")) return false;
-
-    // Near-invisible layers should not participate in collision.
-    if (layer->opacity <= 0.05) return false;
-
-    return ContainsIgnoreCase(layer->name, "wall") ||
-        ContainsIgnoreCase(layer->name, "door") ||
-        ContainsIgnoreCase(layer->name, "decor") ||
-        ContainsIgnoreCase(layer->name, "furniture") ||
-        ContainsIgnoreCase(layer->name, "tree") ||
-        ContainsIgnoreCase(layer->name, "object");
+    if (!layer || layer->type != LAYER_TYPE_TILE_LAYER) return false;
+    if (!layer->exact.tileLayer.tiles) return false;
+    if (layer->exact.tileLayer.width == 0 || layer->exact.tileLayer.height == 0) return false;
+    return true;
 }
 
 static uint32_t NormalizeGid(uint32_t rawGid)
@@ -108,32 +140,67 @@ static const TmxTileset* FindTilesetForGid(const TmxMap* map, uint32_t gid)
     return NULL;
 }
 
-static bool IsSolidRawGid(const TmxMap* map, uint32_t rawGid)
+// Resolve collision/door classification by combining layer, tileset, and tile bool properties.
+static void ClassifyTileByBoolProperties(const TmxLayer* layer, uint32_t rawGid, bool* outCollision, bool* outDoor)
 {
     uint32_t gid = NormalizeGid(rawGid);
     const TmxTileset* ts = NULL;
+    bool layerCollision = false;
+    bool layerDoor = false;
+    bool tilesetCollision = false;
+    bool tilesetDoor = false;
+    bool tileCollision = false;
+    bool tileDoor = false;
 
-    if (gid == 0) return false;
+    if (outCollision) *outCollision = false;
+    if (outDoor) *outDoor = false;
 
-    ts = FindTilesetForGid(map, gid);
-    if (!ts) return false;
+    if (!gTestMap || !layer || gid == 0) return;
 
-    return IsTilesetSolidByName(ts->name);
+    ts = FindTilesetForGid(gTestMap, gid);
+    if (!ts) return;
+
+    (void)GetBoolPropertyByName(layer->properties, layer->propertiesLength, "collision", &layerCollision);
+    (void)GetBoolPropertyByName(layer->properties, layer->propertiesLength, "door", &layerDoor);
+
+    (void)GetBoolPropertyByName(ts->properties, ts->propertiesLength, "collision", &tilesetCollision);
+    (void)GetBoolPropertyByName(ts->properties, ts->propertiesLength, "door", &tilesetDoor);
+
+    {
+        uint32_t localId = gid - ts->firstGid;
+        const TmxTilesetTile* tile = FindTilesetTileByLocalId(ts, localId);
+        if (tile)
+        {
+            (void)GetBoolPropertyByName(tile->properties, tile->propertiesLength, "collision", &tileCollision);
+            (void)GetBoolPropertyByName(tile->properties, tile->propertiesLength, "door", &tileDoor);
+        }
+    }
+
+    if (outDoor) *outDoor = layerDoor || tilesetDoor || tileDoor;
+    if (outCollision)
+    {
+        bool isDoor = layerDoor || tilesetDoor || tileDoor;
+        *outCollision = isDoor || layerCollision || tilesetCollision || tileCollision;
+    }
 }
 
-static bool IsDoorRawGid(const TmxMap* map, uint32_t rawGid)
+// True when tile should block movement/projectiles.
+static bool IsTileCollision(const TmxLayer* layer, uint32_t rawGid)
 {
-    uint32_t gid = NormalizeGid(rawGid);
-    const TmxTileset* ts = NULL;
-
-    if (gid == 0) return false;
-
-    ts = FindTilesetForGid(map, gid);
-    if (!ts) return false;
-
-    return IsDoorTileset(ts);
+    bool collision = false;
+    ClassifyTileByBoolProperties(layer, rawGid, &collision, NULL);
+    return collision;
 }
 
+// True when tile represents an interactable/openable door.
+static bool IsTileDoor(const TmxLayer* layer, uint32_t rawGid)
+{
+    bool door = false;
+    ClassifyTileByBoolProperties(layer, rawGid, NULL, &door);
+    return door;
+}
+
+// Distance from point to rectangle edge (0 when inside rectangle).
 static float DistancePointToRect(Vector2 p, Rectangle r)
 {
     float dx = 0.0f;
@@ -148,6 +215,7 @@ static float DistancePointToRect(Vector2 p, Rectangle r)
     return sqrtf(dx * dx + dy * dy);
 }
 
+// Fuzzy rectangle equality for door zone comparisons.
 static bool IsSameDoorZone(Rectangle a, Rectangle b)
 {
     float eps = 2.0f;
@@ -155,6 +223,7 @@ static bool IsSameDoorZone(Rectangle a, Rectangle b)
         fabsf(a.width - b.width) <= eps && fabsf(a.height - b.height) <= eps;
 }
 
+// Skip collisions on doors already opened in runtime state.
 static bool IsTileInsideAnyOpenedDoor(Rectangle tileRect)
 {
     for (int i = 0; i < gOpenedDoorCount; i++)
@@ -165,6 +234,7 @@ static bool IsTileInsideAnyOpenedDoor(Rectangle tileRect)
     return false;
 }
 
+// Expand a single touched door tile into a merged nearby door cluster zone.
 static bool BuildOpenedDoorZone(Rectangle triggerZone, Rectangle* outZone)
 {
     if (!outZone || !gTestMap) return false;
@@ -184,7 +254,7 @@ static bool BuildOpenedDoorZone(Rectangle triggerZone, Rectangle* outZone)
         for (uint32_t li = 0; li < gTestMap->layersLength; li++)
         {
             const TmxLayer* layer = &gTestMap->layers[li];
-            if (!layer || layer->type != LAYER_TYPE_TILE_LAYER || !layer->visible) continue;
+            if (!LayerSupportsTileData(layer)) continue;
 
             {
                 uint32_t w = layer->exact.tileLayer.width;
@@ -200,7 +270,7 @@ static bool BuildOpenedDoorZone(Rectangle triggerZone, Rectangle* outZone)
                     for (uint32_t col = 0; col < w; col++)
                     {
                         uint32_t rawGid = tiles[row * w + col];
-                        if (!IsDoorRawGid(gTestMap, rawGid)) continue;
+                        if (!IsTileDoor(layer, rawGid)) continue;
 
                         {
                             Rectangle tileRect = {
@@ -251,6 +321,7 @@ static bool BuildOpenedDoorZone(Rectangle triggerZone, Rectangle* outZone)
 }
 
 
+// Broadphase + tile scan collision test against active TMX solid tiles.
 static bool CheckCircleAgainstSolidTiles(Vector2 center, float radius, Rectangle mapBounds)
 {
     if (!gTestMap) return false;
@@ -271,7 +342,7 @@ static bool CheckCircleAgainstSolidTiles(Vector2 center, float radius, Rectangle
         for (uint32_t li = 0; li < gTestMap->layersLength; li++)
         {
             const TmxLayer* layer = &gTestMap->layers[li];
-            if (!IsLayerCollisionCandidate(layer)) continue;
+            if (!LayerSupportsTileData(layer)) continue;
 
             {
                 float layerOriginX = mapBounds.x + (float)layer->offsetX;
@@ -299,7 +370,7 @@ static bool CheckCircleAgainstSolidTiles(Vector2 center, float radius, Rectangle
                     for (int col = minCol; col <= maxCol; col++)
                     {
                         uint32_t rawGid = tiles[(uint32_t)row * layerW + (uint32_t)col];
-                        if (!IsSolidRawGid(gTestMap, rawGid)) continue;
+                        if (!IsTileCollision(layer, rawGid)) continue;
 
                         {
                             Rectangle tileRect = {
@@ -325,12 +396,14 @@ static bool CheckCircleAgainstSolidTiles(Vector2 center, float radius, Rectangle
     return false;
 }
 
+// Lazy-load active TMX map if not already loaded.
 static void EnsureTestMapLoaded(void)
 {
     if (gTestMap) return;
     gTestMap = LoadTMX(gActiveMapPath);
 }
 
+// Switch active TMX map and reset map-specific runtime door state.
 bool SetActiveTMXMap(const char* mapPath)
 {
     if (!mapPath || mapPath[0] == '\0') return false;
@@ -347,13 +420,13 @@ bool SetActiveTMXMap(const char* mapPath)
         strncpy(gActiveMapPath, mapPath, sizeof(gActiveMapPath) - 1);
         gActiveMapPath[sizeof(gActiveMapPath) - 1] = '\0';
 
-        gOpenedDoorCount = 0;
-        for (int i = 0; i < MAX_OPENED_DOORS; i++) gOpenedDoorZones[i] = (Rectangle){0};
+        ResetOpenedDoorZones();
     }
 
     return true;
 }
 
+// Initialize runtime GameMap bounds from currently active TMX metadata.
 static GameMap InitMapFromTMXAt(Vector2 origin, Color fallbackFloor, Color fallbackWall)
 {
     EnsureTestMapLoaded();
@@ -388,19 +461,13 @@ GameMap CreateMapLayout(Rectangle bounds, Color floorColor, Color wallColor)
     return map;
 }
 
-// Adds one wall safely; returns false when MAX_WALLS is reached.
-bool AddMapWall(GameMap* map, Rectangle wall)
-{
-    if (!map || map->WallCount >= MAX_WALLS) return false;
-    map->walls[map->WallCount++] = wall;
-    return true;
-}
-
+// Build the active room from current TMX map at default world origin.
 GameMap InitRoom(void)
 {
     return InitMapFromTMXAt((Vector2){1000.0f, 1000.0f}, DARKGRAY, GRAY);
 }
 
+// Keep bounds synchronized with loaded TMX dimensions.
 void SyncMapToWindow(GameMap* map)
 {
     if (!map) return;
@@ -413,6 +480,7 @@ void SyncMapToWindow(GameMap* map)
     map->bounds.height = (float)(gTestMap->height * gTestMap->tileHeight);
 }
 
+// Return tile width of active TMX map; fallback to 16.
 float GetMapTileSize(void)
 {
     EnsureTestMapLoaded();
@@ -421,81 +489,21 @@ float GetMapTileSize(void)
     return (float)gTestMap->tileWidth;
 }
 
+// Circle collision query against active TMX solids.
 bool IsMapCircleBlocked(Vector2 center, float radius, Rectangle mapBounds)
 {
     EnsureTestMapLoaded();
     return CheckCircleAgainstSolidTiles(center, radius, mapBounds);
 }
 
+// Point collision query against active TMX solids.
 bool IsMapPointBlocked(Vector2 point, Rectangle mapBounds)
 {
     EnsureTestMapLoaded();
     return CheckCircleAgainstSolidTiles(point, 0.1f, mapBounds);
 }
 
-bool FindPrimaryDoorInteractZone(Rectangle mapBounds, Rectangle* outDoor)
-{
-    if (!outDoor) return false;
-    EnsureTestMapLoaded();
-    if (!gTestMap) return false;
-
-    {
-        float tileW = (float)gTestMap->tileWidth;
-        float tileH = (float)gTestMap->tileHeight;
-        float bestX = -1.0f;
-        bool found = false;
-        Rectangle bestRect = (Rectangle){0};
-
-        for (uint32_t li = 0; li < gTestMap->layersLength; li++)
-        {
-            const TmxLayer* layer = &gTestMap->layers[li];
-            if (!layer || layer->type != LAYER_TYPE_TILE_LAYER || !layer->visible) continue;
-            if (!ContainsIgnoreCase(layer->name, "door")) continue;
-
-            {
-                uint32_t w = layer->exact.tileLayer.width;
-                uint32_t h = layer->exact.tileLayer.height;
-                const uint32_t* tiles = layer->exact.tileLayer.tiles;
-                float ox = mapBounds.x + (float)layer->offsetX;
-                float oy = mapBounds.y + (float)layer->offsetY;
-
-                if (!tiles || w == 0 || h == 0) continue;
-
-                for (uint32_t row = 0; row < h; row++)
-                {
-                    for (uint32_t col = 0; col < w; col++)
-                    {
-                        uint32_t rawGid = tiles[row * w + col];
-                        uint32_t gid = NormalizeGid(rawGid);
-                        const TmxTileset* ts = FindTilesetForGid(gTestMap, gid);
-                        if (gid == 0 || !ts || !IsDoorTileset(ts)) continue;
-
-                        {
-                            Rectangle r = {ox + (float)col * tileW, oy + (float)row * tileH, tileW, tileH};
-                            if (r.x > bestX)
-                            {
-                                bestX = r.x;
-                                bestRect = r;
-                                found = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!found) return false;
-
-        *outDoor = (Rectangle){
-            bestRect.x - tileW * 0.35f,
-            bestRect.y - tileH * 0.35f,
-            bestRect.width + tileW * 0.7f,
-            bestRect.height + tileH * 0.7f
-        };
-        return true;
-    }
-}
-
+// Find nearest door interaction zone around a position within max distance.
 bool FindNearbyDoorInteractZone(Rectangle mapBounds, Vector2 fromPos, float maxDistance, Rectangle* outDoor)
 {
     if (!outDoor) return false;
@@ -512,7 +520,7 @@ bool FindNearbyDoorInteractZone(Rectangle mapBounds, Vector2 fromPos, float maxD
         for (uint32_t li = 0; li < gTestMap->layersLength; li++)
         {
             const TmxLayer* layer = &gTestMap->layers[li];
-            if (!layer || layer->type != LAYER_TYPE_TILE_LAYER || !layer->visible) continue;
+            if (!LayerSupportsTileData(layer)) continue;
 
             {
                 uint32_t w = layer->exact.tileLayer.width;
@@ -528,9 +536,7 @@ bool FindNearbyDoorInteractZone(Rectangle mapBounds, Vector2 fromPos, float maxD
                     for (uint32_t col = 0; col < w; col++)
                     {
                         uint32_t rawGid = tiles[row * w + col];
-                        uint32_t gid = NormalizeGid(rawGid);
-                        const TmxTileset* ts = FindTilesetForGid(gTestMap, gid);
-                        if (gid == 0 || !ts || !IsDoorTileset(ts)) continue;
+                        if (!IsTileDoor(layer, rawGid)) continue;
 
                         {
                             Rectangle zone = {
@@ -559,6 +565,7 @@ bool FindNearbyDoorInteractZone(Rectangle mapBounds, Vector2 fromPos, float maxD
     }
 }
 
+// Mark a door area opened so its tiles stop blocking movement.
 void OpenDoorInteractZone(Rectangle doorZone)
 {
     Rectangle zoneToStore = doorZone;
@@ -577,11 +584,7 @@ void OpenDoorInteractZone(Rectangle doorZone)
     gOpenedDoorZones[gOpenedDoorCount++] = zoneToStore;
 }
 
-bool HasOpenedDoor(void)
-{
-    return gOpenedDoorCount > 0;
-}
-
+// Query whether a door zone overlaps any opened door zone.
 bool IsDoorInteractZoneOpened(Rectangle doorZone)
 {
     for (int i = 0; i < gOpenedDoorCount; i++)
@@ -592,6 +595,7 @@ bool IsDoorInteractZoneOpened(Rectangle doorZone)
     return false;
 }
 
+// Draw active map using TMX renderer (or fallback room if map missing).
 void DrawMap(GameMap map)
 {
     EnsureTestMapLoaded();
@@ -609,11 +613,11 @@ void DrawMap(GameMap map)
     DrawRectangleLinesEx(map.bounds, 8.0f, MAROON);
 }
 
+// Release TMX resources and clear opened-door runtime cache.
 void ShutdownMapSystem(void)
 {
     if (!gTestMap) return;
     UnloadTMX(gTestMap);
     gTestMap = NULL;
-    gOpenedDoorCount = 0;
-    for (int i = 0; i < MAX_OPENED_DOORS; i++) gOpenedDoorZones[i] = (Rectangle){0};
+    ResetOpenedDoorZones();
 }

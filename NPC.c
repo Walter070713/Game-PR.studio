@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "raymath.h"
 
+// Cached optional texture for Rondy world rendering.
 static Texture2D gRondyTexture = {0};
 static bool gTriedLoadRondyTexture = false;
 static bool gRondyTextureLoaded = false;
@@ -10,6 +11,7 @@ static const float kRondyVisualCompensation = 5.0f;
 // Keep gameplay collision sane even when visual sprite is oversized.
 static const float kRondyCollisionCompensation = 1.35f;
 
+// Compute visual radius (can differ from collision radius for stylized sprites).
 static float GetNPCVisualRadius(const NPC* npc)
 {
     if (!npc) return 0.0f;
@@ -17,6 +19,7 @@ static float GetNPCVisualRadius(const NPC* npc)
     return npc->body;
 }
 
+// Compute collision radius used for player push-out.
 static float GetNPCCollisionRadius(const NPC* npc)
 {
     if (!npc) return 0.0f;
@@ -24,6 +27,7 @@ static float GetNPCCollisionRadius(const NPC* npc)
     return npc->body;
 }
 
+// Lazy-load Rondy sprite once and reuse it for subsequent frames.
 static void EnsureRondyTextureLoaded(void)
 {
     if (gTriedLoadRondyTexture) return;
@@ -37,6 +41,7 @@ static void EnsureRondyTextureLoaded(void)
     }
 }
 
+// Reset NPC pool state.
 void InitNPCPool(NPCPool* pool)
 {
     if (!pool) return;
@@ -51,6 +56,7 @@ void InitNPCPool(NPCPool* pool)
     }
 }
 
+// Append one NPC to the active pool.
 void AddNPC(NPCPool* pool, Vector2 pos, const char* name, float size, Color color)
 {
     if (!pool || pool->count >= 16) return;
@@ -64,6 +70,7 @@ void AddNPC(NPCPool* pool, Vector2 pos, const char* name, float size, Color colo
     pool->count++;
 }
 
+// Draw active NPCs with sprite fallback and name labels.
 void DrawNPCs(NPCPool* pool)
 {
     if (!pool) return;
@@ -77,7 +84,7 @@ void DrawNPCs(NPCPool* pool)
             NPC* npc = &pool->npcs[i];
             float visualRadius = GetNPCVisualRadius(npc);
 
-            // Render Rondy sprite if available, otherwise fallback to circle.
+            // Draw Rondy as sprite when available, otherwise draw basic circle body.
             if (npc->name && TextIsEqual(npc->name, "Rondy") && gRondyTextureLoaded)
             {
                 float targetDiameter = visualRadius * 2.0f;
@@ -114,6 +121,7 @@ void DrawNPCs(NPCPool* pool)
     }
 }
 
+// Keep player from overlapping active NPC collision bodies.
 void ResolvePlayerNPCCollision(Player* player, const NPCPool* pool)
 {
     if (!player || !pool) return;
@@ -129,6 +137,7 @@ void ResolvePlayerNPCCollision(Player* player, const NPCPool* pool)
 
         if (distance < minDistance)
         {
+            // Push player outward along separation vector.
             Vector2 direction;
             if (distance <= 0.0001f)
             {

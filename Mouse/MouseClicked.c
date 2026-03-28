@@ -1,19 +1,20 @@
 #include "MouseClicked.h"
 
+// Draw one text option and treat its text bounds as click target.
 bool IsOptionClicked(const char* text, int x, int y, int fontSize, Color normalColor, Color hoverColor) 
 {
-    //  Measure the text so we know exactly how big the "hitbox" is
+    // Compute hitbox from measured text width.
     int textWidth = MeasureText(text, fontSize);
     
-    //  Create a hidden rectangle (the button's collision area)
+    // Use text rectangle as hover/click region.
     Rectangle bounds = { (float)x, (float)y, (float)textWidth, (float)fontSize };
     
-    //  Check if the mouse cursor is inside that rectangle
+    // Highlight when cursor is inside region.
     bool isHovered = CheckCollisionPointRec(GetMousePosition(), bounds);
     
-    //  Draw the text
+    // Render option label in normal/hover color.
     DrawText(text, x, y, fontSize, isHovered ? hoverColor : normalColor);
     
-    //  Return true ONLY if the mouse is over the text AND the left button is pressed
+    // Trigger on same-frame left click while hovered.
     return isHovered && IsMouseButtonPressed(MOUSE_LEFT_BUTTON);
 }

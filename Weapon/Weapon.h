@@ -1,12 +1,13 @@
 #ifndef WEAPON_H
 #define WEAPON_H
 #include "raylib.h"
-#include "raymath.h"
 
+// Supported weapon presets.
 typedef enum {
     WEAPON_PISTOL = 0,
-    WEAPON_RIFLE = 1,
-    WEAPON_SHOTGUN = 2
+    WEAPON_RIFLE,
+    WEAPON_SHOTGUN,
+    WEAPON_COUNT
 } WeaponType;
 
 typedef struct {
@@ -36,19 +37,19 @@ typedef struct {
 // Get the max bullet pool size for the given weapon (used by the bullet system)
 int GetWeaponBulletPoolSize(const Weapon* weapon);
 
-// Initialize a weapon with a specific type
+// Create a weapon from preset values.
 Weapon InitWeapon(WeaponType type);
 
-// Try to fire the weapon, returns true if successful
+// Attempt one shot; returns true only when fire gate allows it.
 bool FireWeapon(Weapon* weapon);
 
-// Reload the weapon
+// Enter reload state.
 void ReloadWeapon(Weapon* weapon);
 
-// Update weapon state (timers, etc)
+// Advance timers and handle manual/auto reload progression.
 void UpdateWeapon(Weapon* weapon);
 
-// Get weapon info for HUD display
+// Read-only HUD payload extracted from weapon state.
 typedef struct {
     int magazine;
     int totalAmmo;
@@ -56,8 +57,10 @@ typedef struct {
     float reloadProgress; // 0.0 to 1.0
 } WeaponInfo;
 
+// Snapshot weapon data for UI rendering.
 WeaponInfo GetWeaponInfo(const Weapon* weapon);
 
-void DrawReload(WeaponInfo *winfo);
+// Draw reload indicator/hint widget.
+void DrawReload(const WeaponInfo* winfo);
 
 #endif

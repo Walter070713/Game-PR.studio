@@ -1,16 +1,146 @@
 #include "Scene.h"
-#include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
+#include <ctype.h>
 
+// Scene subsystem: data-file parsing + runtime scene playback (typewriter UI).
 // Internal helper functions
 static void LoadSceneTextures(Scene* scene);
 static void UnloadSceneTextures(Scene* scene);
 static void DrawDialogBox(Scene* scene);
-static void DrawText_Wrapped(const char* text, float x, float y, int fontSize, Color color, float maxWidth, int maxVisibleChars, bool centerHorizontal);
+static void DrawText_Wrapped(const char* text, float x, float y, int fontSize, Color color, float maxWidth, int maxVisibleChars);
 static int GetLineTextLength(const Scene* scene);
 static bool SamePath(const char* a, const char* b);
+static bool AdvanceSceneLine(Scene* scene);
+static char* CloneString(const char* source);
+static char* TrimWhitespace(char* text);
+static bool EqualsIgnoreCase(const char* a, const char* b);
+static bool IsNullField(const char* field);
+static void UnescapeEscapedNewlines(char* text);
+static void FreeSceneLines(SceneLine* lines, int count);
+static bool ParseSceneDataLine(char* rawLine, SceneLine* outLine);
 
+// Global typewriter speed constraints used by settings screen.
+static const float kMinSceneTextSpeed = 12.0f;
+static const float kMaxSceneTextSpeed = 120.0f;
+static float gSceneTypingSpeed = 42.0f;
+
+// Read current global scene text speed.
+float GetSceneTextSpeed(void)
+{
+    return gSceneTypingSpeed;
+}
+
+// Clamp and store global scene text speed.
+void SetSceneTextSpeed(float charsPerSecond)
+{
+    if (charsPerSecond < kMinSceneTextSpeed) charsPerSecond = kMinSceneTextSpeed;
+    if (charsPerSecond > kMaxSceneTextSpeed) charsPerSecond = kMaxSceneTextSpeed;
+    gSceneTypingSpeed = charsPerSecond;
+}
+
+// Load a scene script file into heap-allocated SceneData.
+bool LoadSceneDataFromFile(const char* sceneName, const char* filePath, SceneData* outScene)
+{
+    char* fileText;
+    SceneLine* lines;
+    int capacity = 16;
+    int lineCount = 0;
+
+    if (!sceneName || !filePath || !outScene) return false;
+
+    fileText = LoadFileText(filePath);
+    if (!fileText) return false;
+
+    lines = (SceneLine*)calloc((size_t)capacity, sizeof(SceneLine));
+    if (!lines)
+    {
+        UnloadFileText(fileText);
+        return false;
+    }
+
+    {
+        char* rawLine = strtok(fileText, "\r\n");
+        while (rawLine)
+        {
+            char* line = TrimWhitespace(rawLine);
+
+            if (line[0] != '\0' && line[0] != '#')
+            {
+                if (lineCount >= capacity)
+                {
+                    int newCapacity = capacity * 2;
+                    SceneLine* expanded = (SceneLine*)realloc(lines, (size_t)newCapacity * sizeof(SceneLine));
+                    if (!expanded)
+                    {
+                        FreeSceneLines(lines, lineCount);
+                        free(lines);
+                        UnloadFileText(fileText);
+                        return false;
+                    }
+
+                    memset(expanded + capacity, 0, (size_t)(newCapacity - capacity) * sizeof(SceneLine));
+                    lines = expanded;
+                    capacity = newCapacity;
+                }
+
+                if (!ParseSceneDataLine(line, &lines[lineCount]))
+                {
+                    FreeSceneLines(lines, lineCount);
+                    free(lines);
+                    UnloadFileText(fileText);
+                    return false;
+                }
+
+                lineCount++;
+            }
+
+            rawLine = strtok(NULL, "\r\n");
+        }
+    }
+
+    // fileText buffer is no longer needed after tokenization/parsing.
+    UnloadFileText(fileText);
+
+    if (lineCount <= 0)
+    {
+        free(lines);
+        return false;
+    }
+
+    outScene->sceneName = CloneString(sceneName);
+    if (!outScene->sceneName)
+    {
+        FreeSceneLines(lines, lineCount);
+        free(lines);
+        return false;
+    }
+
+    outScene->lines = lines;
+    outScene->lineCount = lineCount;
+    return true;
+}
+
+// Free all heap memory owned by a SceneData loaded from file.
+void UnloadSceneData(SceneData* sceneData)
+{
+    if (!sceneData) return;
+
+    if (sceneData->lines)
+    {
+        FreeSceneLines(sceneData->lines, sceneData->lineCount);
+        free(sceneData->lines);
+    }
+
+    free((void*)sceneData->sceneName);
+
+    sceneData->sceneName = NULL;
+    sceneData->lines = NULL;
+    sceneData->lineCount = 0;
+}
+
+// Initialize one runtime scene playthrough from prepared SceneData.
 void InitScene(Scene* scene, SceneData* sceneData) {
     if (!scene || !sceneData) return;
     
@@ -31,7 +161,7 @@ void InitScene(Scene* scene, SceneData* sceneData) {
 
     // Typewriter defaults
     scene->visibleCharCount = 0;
-    scene->typingCharsPerSecond = 42.0f;
+    scene->typingCharsPerSecond = gSceneTypingSpeed;
     scene->typingAccumulator = 0.0f;
     
     // Background animation
@@ -41,6 +171,7 @@ void InitScene(Scene* scene, SceneData* sceneData) {
     LoadSceneTextures(scene);
 }
 
+// Advance scene animation/input and handle line progression.
 bool UpdateScene(Scene* scene) {
     if (!scene || !scene->isActive) return false;
 
@@ -71,8 +202,7 @@ bool UpdateScene(Scene* scene) {
         }
         else if (!AdvanceSceneLine(scene)) {
             // Scene is complete
-            scene->isActive = false;
-            UnloadSceneTextures(scene);
+            CleanupScene(scene);
             return false;
         }
     }
@@ -80,6 +210,7 @@ bool UpdateScene(Scene* scene) {
     return true;
 }
 
+// Render active scene background, portrait, and dialog box.
 void DrawScene(Scene* scene) {
     if (!scene || !scene->isActive) return;
     
@@ -89,7 +220,6 @@ void DrawScene(Scene* scene) {
     const float baseHeight = 1600.0f;
     const float ratioX = (float)screenWidth / baseWidth;
     const float ratioY = (float)screenHeight / baseHeight;
-    const float contentScale = (ratioX < ratioY) ? ratioX : ratioY;
 
     // Draw background if available (full-screen) with zoom and smooth scrolling
     if (scene->bgLoaded && scene->backgroundTexture.id != 0) {
@@ -133,6 +263,7 @@ void DrawScene(Scene* scene) {
     DrawDialogBox(scene);
 }
 
+// Stop active scene and release loaded textures.
 void CleanupScene(Scene* scene) {
     if (!scene) return;
     
@@ -141,7 +272,8 @@ void CleanupScene(Scene* scene) {
     scene->data = NULL;
 }
 
-bool AdvanceSceneLine(Scene* scene) {
+// Move to next scene line and refresh per-line textures.
+static bool AdvanceSceneLine(Scene* scene) {
     if (!scene || !scene->data) return false;
     
     scene->currentLineIndex++;
@@ -159,21 +291,9 @@ bool AdvanceSceneLine(Scene* scene) {
     return true;
 }
 
-bool IsSceneComplete(Scene* scene) {
-    if (!scene) return true;
-    return scene->currentLineIndex >= scene->data->lineCount;
-}
-
-void SkipScene(Scene* scene) {
-    if (!scene || !scene->data) return;
-    
-    scene->currentLineIndex = scene->data->lineCount;
-    scene->isActive = false;
-    UnloadSceneTextures(scene);
-}
-
 // ============== INTERNAL HELPER FUNCTIONS ==============
 
+// Load textures needed by current line, reusing previous line assets when possible.
 static void LoadSceneTextures(Scene* scene) {
     if (!scene || !scene->data || scene->currentLineIndex >= scene->data->lineCount) return;
     
@@ -216,6 +336,7 @@ static void LoadSceneTextures(Scene* scene) {
     }
 }
 
+// Compare two optional file paths for equality.
 static bool SamePath(const char* a, const char* b)
 {
     if (!a && !b) return true;
@@ -223,7 +344,7 @@ static bool SamePath(const char* a, const char* b)
     return strcmp(a, b) == 0;
 }
 
-// Unload scene
+// Release currently loaded scene textures.
 static void UnloadSceneTextures(Scene* scene) {
     if (!scene) return;
     
@@ -237,6 +358,7 @@ static void UnloadSceneTextures(Scene* scene) {
     }
 }
 
+// Draw dialog frame, speaker name, wrapped text, and continue hint.
 static void DrawDialogBox(Scene* scene) {
     if (!scene || !scene->data || scene->currentLineIndex >= scene->data->lineCount) return;
     
@@ -258,7 +380,7 @@ static void DrawDialogBox(Scene* scene) {
     float textX = 20.0f;
     float textY = boxY + (scene->dialogBoxHeight * 0.5f) - (scene->fontSize * 0.5f);
     float maxTextWidth = screenWidth - 40.0f;
-    DrawText_Wrapped(currentLine->dialogText, textX, textY, scene->fontSize, scene->textColor, maxTextWidth, scene->visibleCharCount, true);
+    DrawText_Wrapped(currentLine->dialogText, textX, textY, scene->fontSize, scene->textColor, maxTextWidth, scene->visibleCharCount);
     
     // Draw "Press ENTER to continue" hint
     int lineLen = GetLineTextLength(scene);
@@ -267,8 +389,8 @@ static void DrawDialogBox(Scene* scene) {
     DrawText(continueText, screenWidth - continueWidth - 20, (int)(boxY + scene->dialogBoxHeight - 40), 24, YELLOW);
 }
 
-// Text wrapping helper - draws text with line breaks to fit within maxWidth
-static void DrawText_Wrapped(const char* text, float x, float y, int fontSize, Color color, float maxWidth, int maxVisibleChars, bool centerHorizontal) {
+// Draw wrapped text with optional manual newlines and typing character limit.
+static void DrawText_Wrapped(const char* text, float x, float y, int fontSize, Color color, float maxWidth, int maxVisibleChars) {
     if (!text) return;
     
     Vector2 position = {x, y};
@@ -317,10 +439,189 @@ static void DrawText_Wrapped(const char* text, float x, float y, int fontSize, C
     }
 }
 
+// Return full text length for current line.
 static int GetLineTextLength(const Scene* scene)
 {
     if (!scene || !scene->data || scene->currentLineIndex >= scene->data->lineCount) return 0;
     const SceneLine* currentLine = &scene->data->lines[scene->currentLineIndex];
     if (!currentLine || !currentLine->dialogText) return 0;
     return (int)strlen(currentLine->dialogText);
+}
+
+// Heap duplicate helper for scene script string fields.
+static char* CloneString(const char* source)
+{
+    size_t length;
+    char* copy;
+
+    if (!source) return NULL;
+
+    length = strlen(source);
+    copy = (char*)malloc(length + 1);
+    if (!copy) return NULL;
+
+    memcpy(copy, source, length + 1);
+    return copy;
+}
+
+// Trim leading and trailing whitespace in-place.
+static char* TrimWhitespace(char* text)
+{
+    char* end;
+
+    if (!text) return text;
+
+    while (*text && isspace((unsigned char)*text)) text++;
+    if (*text == '\0') return text;
+
+    end = text + strlen(text) - 1;
+    while (end >= text && isspace((unsigned char)*end))
+    {
+        *end = '\0';
+        end--;
+    }
+
+    return text;
+}
+
+// Case-insensitive string equality helper.
+static bool EqualsIgnoreCase(const char* a, const char* b)
+{
+    if (!a || !b) return false;
+
+    while (*a && *b)
+    {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b)) return false;
+        a++;
+        b++;
+    }
+
+    return *a == '\0' && *b == '\0';
+}
+
+// Treat empty/NONE/NULL markers as absent optional fields.
+static bool IsNullField(const char* field)
+{
+    if (!field) return true;
+    if (field[0] == '\0') return true;
+    if (strcmp(field, "-") == 0) return true;
+    if (EqualsIgnoreCase(field, "none")) return true;
+    if (EqualsIgnoreCase(field, "null")) return true;
+    return false;
+}
+
+// Convert escaped literals (\\n, \\\\) to runtime string characters.
+static void UnescapeEscapedNewlines(char* text)
+{
+    char* readCursor;
+    char* writeCursor;
+
+    if (!text) return;
+
+    readCursor = text;
+    writeCursor = text;
+
+    while (*readCursor)
+    {
+        if (readCursor[0] == '\\' && readCursor[1] == 'n')
+        {
+            *writeCursor++ = '\n';
+            readCursor += 2;
+            continue;
+        }
+
+        if (readCursor[0] == '\\' && readCursor[1] == '\\')
+        {
+            *writeCursor++ = '\\';
+            readCursor += 2;
+            continue;
+        }
+
+        *writeCursor++ = *readCursor++;
+    }
+
+    *writeCursor = '\0';
+}
+
+// Free duplicated string fields for a contiguous set of SceneLine entries.
+static void FreeSceneLines(SceneLine* lines, int count)
+{
+    if (!lines || count <= 0) return;
+
+    for (int i = 0; i < count; i++)
+    {
+        free((void*)lines[i].characterName);
+        free((void*)lines[i].dialogText);
+        free((void*)lines[i].backgroundPath);
+        free((void*)lines[i].characterImagePath);
+    }
+}
+
+// Parse one scene-script line into a SceneLine structure.
+static bool ParseSceneDataLine(char* rawLine, SceneLine* outLine)
+{
+    char* fields[7] = {0};
+    int fieldCount = 0;
+    char* cursor = rawLine;
+    SceneLine parsedLine = {0};
+
+    if (!rawLine || !outLine) return false;
+
+    while (fieldCount < 7)
+    {
+        char* separator = strchr(cursor, '|');
+        fields[fieldCount++] = cursor;
+
+        if (!separator) break;
+        *separator = '\0';
+        cursor = separator + 1;
+    }
+
+    if (fieldCount != 7) return false;
+
+    for (int i = 0; i < 7; i++)
+    {
+        fields[i] = TrimWhitespace(fields[i]);
+    }
+
+    if (fields[0][0] == '\0' || fields[1][0] == '\0') return false;
+
+    UnescapeEscapedNewlines(fields[1]);
+
+    parsedLine.characterName = CloneString(fields[0]);
+    parsedLine.dialogText = CloneString(fields[1]);
+    parsedLine.characterX = strtof(fields[4], NULL);
+    parsedLine.characterY = strtof(fields[5], NULL);
+    parsedLine.characterScale = strtof(fields[6], NULL);
+
+    if (!parsedLine.characterName || !parsedLine.dialogText)
+    {
+        FreeSceneLines(&parsedLine, 1);
+        return false;
+    }
+
+    if (parsedLine.characterScale <= 0.0f) parsedLine.characterScale = 1.0f;
+
+    if (!IsNullField(fields[2]))
+    {
+        parsedLine.backgroundPath = CloneString(fields[2]);
+        if (!parsedLine.backgroundPath)
+        {
+            FreeSceneLines(&parsedLine, 1);
+            return false;
+        }
+    }
+
+    if (!IsNullField(fields[3]))
+    {
+        parsedLine.characterImagePath = CloneString(fields[3]);
+        if (!parsedLine.characterImagePath)
+        {
+            FreeSceneLines(&parsedLine, 1);
+            return false;
+        }
+    }
+
+    *outLine = parsedLine;
+    return true;
 }

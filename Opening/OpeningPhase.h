@@ -10,6 +10,7 @@
 #include "Bullet.h"
 #include "NPC.h"
 
+// Opening chapter sub-phases handled inside gameplay/scene transitions.
 typedef enum {
     OPENING_NOT_STARTED,
     OPENING_DIALOG,
@@ -18,29 +19,35 @@ typedef enum {
     OPENING_COMPLETE
 } OpeningPhase;
 
+// Runtime payload for opening chapter exploration and interactions.
 typedef struct {
     OpeningPhase phase;
     Rectangle door;
     Rectangle transportZone;
     Vector2 transportPoint;
-    float reminderTimer;
     float movementHintTimer;      // Timer for movement hint display
     bool playerHasMovedInOpening; // Tracks if player has moved this session
 } OpeningFlow;
 
+// Initialize opening flow state.
 void InitOpeningFlow(OpeningFlow* flow);
-void OpeningStartMission(OpeningFlow* flow, Scene* scene, GameMap* room, Player* player, 
-    Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer, NPCPool* npcpool);
+
+// Start opening story scene and set opening chapter active.
+void OpeningStartMission(OpeningFlow* flow, Scene* scene, const Player* player);
+
+// Update opening exploration logic and emit transition flags.
 bool UpdateOpeningPeacefulPhase(OpeningFlow* flow, Player* player, GameMap* room,
-    Enemy enemyPool[], int enemyCapacity, Bullet bulletPool[], float* spawnTimer, Scene* scene, NPCPool* npcpool,
+    Scene* scene, NPCPool* npcpool,
     bool* shouldEnterScene, bool* shouldStartTutorial);
+
+// React to scene completion and advance opening phase.
 void OpeningHandleSceneComplete(OpeningFlow* flow, GameMap* room, Player* player,
     Bullet bulletPool[], int bulletPoolSize, Enemy enemyPool[], int enemyCapacity, float* spawnTimer, NPCPool* npcpool);
 
-bool OpeningIsPeacefulPhase(const OpeningFlow* flow);
-bool OpeningIsCombatEnabled(const OpeningFlow* flow);
-bool OpeningIsComplete(const OpeningFlow* flow);
+// Draw opening-only prompts and interaction hints.
 void DrawOpeningWorldOverlay(const OpeningFlow* flow, const Player* player, const NPCPool* npcpool);
-void DrawOpeningHUD(const OpeningFlow* flow, const Player* player);
+
+// Release opening-specific loaded scene data.
+void ShutdownOpeningFlowAssets(void);
 
 #endif

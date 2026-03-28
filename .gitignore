@@ -1,0 +1,14 @@
+# Build outputs
+*.o
+*.obj
+*.exe
+
+# Keep release binary if needed for submission
+!game.exe
+
+# Tooling noise
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store

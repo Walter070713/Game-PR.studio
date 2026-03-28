@@ -1,18 +1,56 @@
 #include "Collision.h"
 
-// Forward declarations (used before their definitions)
-void ApplyDamageToPlayer(Player *pl, int damage);
-void UpdatePlayerStats(Player *pl);
-
-void ApplyDamageToPlayer(Player *pl, int damage)
+// Normalize vector, but return fallback when magnitude is too small.
+static Vector2 NormalizeOrFallback(Vector2 v, Vector2 fallback)
 {
-    // Check I-Frames: If timer > 0, ignore damage
+    if (Vector2LengthSqr(v) <= 0.0001f) return fallback;
+    return Vector2Normalize(v);
+}
+
+// Axis-separated slide resolver used after map collision detection.
+static Vector2 ResolveCircleSlide(Vector2 currentPos, Vector2 previousPos, float radius, Rectangle mapBounds)
+{
+    Vector2 onlyX = {currentPos.x, previousPos.y};
+    Vector2 onlyY = {previousPos.x, currentPos.y};
+
+    if (!IsMapCircleBlocked(onlyX, radius, mapBounds)) return onlyX;
+    if (!IsMapCircleBlocked(onlyY, radius, mapBounds)) return onlyY;
+    return previousPos;
+}
+
+// Keep circle center inside map bounds while respecting radius.
+static void ClampCircleToBounds(Vector2* pos, float radius, Rectangle bounds)
+{
+    if (!pos) return;
+
+    if (pos->x < bounds.x + radius) pos->x = bounds.x + radius;
+    if (pos->x > bounds.x + bounds.width - radius) pos->x = bounds.x + bounds.width - radius;
+    if (pos->y < bounds.y + radius) pos->y = bounds.y + radius;
+    if (pos->y > bounds.y + bounds.height - radius) pos->y = bounds.y + bounds.height - radius;
+}
+
+// Boundary check helper for bullet lifetime against world rectangle.
+static bool IsBulletOutOfBounds(const Bullet* bullet, Rectangle bounds)
+{
+    if (!bullet) return true;
+
+    if (bullet->pos.x < bounds.x + bullet->size || bullet->pos.x > bounds.x + bounds.width - bullet->size) return true;
+    if (bullet->pos.y < bounds.y + bullet->size || bullet->pos.y > bounds.y + bounds.height - bullet->size) return true;
+    return false;
+}
+
+// Damage pipeline: apply I-frames, shield/health damage, and regen reset.
+static void ApplyDamageToPlayer(Player *pl, int damage)
+{
+    if (!pl || damage <= 0) return;
+
+    // Ignore hit while player is still invulnerable.
     if (pl->hurtTimer > 0) return;
 
-    // Reset Shield Regen: Getting hit stops the recharge
+    // Any incoming hit pauses shield regeneration.
     pl->shieldRegenTimer = 5.0f; // Must wait 5 seconds to regen again
 
-    // Trigger I-Frames
+    // Trigger temporary invulnerability window.
     pl->hurtTimer = 0.6f; // Player is indamageable for 0.6 seconds
 
     // Damage to Shield first
@@ -24,24 +62,26 @@ void ApplyDamageToPlayer(Player *pl, int damage)
             pl->shield = 0;
         }
     } else {
-        // 5. Damage directly to Health
+        // Shield depleted: route damage directly to health.
         pl->health -= damage;
     }
 
     // Check for Death
     if (pl->health <= 0) {
         pl->health = 0;
-        // Trigger Game Over State here later
+        // Game-over transition is handled elsewhere.
     }
 }
 
+    // Update post-damage timers: I-frames and shield regeneration.
 void UpdatePlayerStats(Player *pl)
 {
+    if (!pl) return;
 
     // Tick down I-Frames
     if (pl->hurtTimer > 0) pl->hurtTimer -= GetFrameTime();
 
-    // Handle Shield Regeneration
+    // Handle delayed shield regeneration.
     if (pl->shieldRegenTimer > 0) 
     {
         pl->shieldRegenTimer -= GetFrameTime();
@@ -62,15 +102,18 @@ void UpdatePlayerStats(Player *pl)
     }
 }
 
+// Resolve combat collisions among enemies, bullets, and player.
 void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int bCount)
- {
-    // Enemy involved part
+{
+    if (!pl || !e || eCount <= 0) return;
+
+    // Iterate active enemies as primary collision participants.
     for (int i = 0; i < eCount; i++) 
     {
         if (!e[i].active) continue;
 
         // BULLET vs ENEMY
-        for (int j = 0; j < bCount; j++)
+        for (int j = 0; b && j < bCount; j++)
          {
             if (b[j].active && CheckCollisionCircles(b[j].pos, b[j].size, e[i].pos, e[i].body))
              {
@@ -92,8 +135,7 @@ void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int b
         if (CheckCollisionCircles(pl->pos, pl->body, e[i].pos, e[i].body)) 
         {
             ApplyDamageToPlayer(pl, 1);
-            Vector2 push = Vector2Subtract(pl->pos, e[i].pos); // pushed direction
-            push = Vector2Scale(Vector2Normalize(push), 1.0f); // push distance
+            Vector2 push = NormalizeOrFallback(Vector2Subtract(pl->pos, e[i].pos), (Vector2){1.0f, 0.0f});
             pl->pos = Vector2Add(pl->pos, push);
             e[i].pos = Vector2Subtract(e[i].pos, push);
         }
@@ -104,8 +146,7 @@ void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int b
             if (e[k].active && CheckCollisionCircles(e[i].pos, e[i].body, e[k].pos, e[k].body)) 
             {
                 // push them apart
-                Vector2 push = Vector2Subtract(e[i].pos, e[k].pos); // direction
-                push = Vector2Scale(Vector2Normalize(push), 1.0f); // push distance
+                Vector2 push = NormalizeOrFallback(Vector2Subtract(e[i].pos, e[k].pos), (Vector2){1.0f, 0.0f});
                 e[i].pos = Vector2Add(e[i].pos, push);
                 e[k].pos = Vector2Subtract(e[k].pos, push);
             }
@@ -113,115 +154,34 @@ void ResolveEnemyCollisions(Player* pl, Enemy e[], int eCount, Bullet b[], int b
     }
 }
 
+// Resolve collisions against TMX solids and hard map bounds.
 void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount,Bullet b[], int bCount)
- {
-    // Inner walls collision
-    for (int i = 0; i < map.WallCount; i++) 
+{
+    if (!pl) return;
+
+    float playerRadius = pl->body * 0.88f;
+
+    // Player vs TMX collision map with axis slide fallback.
+    if (IsMapCircleBlocked(pl->pos, playerRadius, map.bounds))
     {
-        // Player vs wall
-        if (CheckCollisionCircleRec(pl->pos, pl->body, map.walls[i])) 
-        {
-            // Try only moving in X?
-            Vector2 onlyX = { pl->pos.x, pl->prevpos.y };
-            // Try only moving in Y?
-            Vector2 onlyY = { pl->prevpos.x, pl->pos.y };
-
-            if (!CheckCollisionCircleRec(onlyX, pl->body, map.walls[i])) 
-            {
-                pl->pos = onlyX; // Slide horizontally
-            } 
-            else if (!CheckCollisionCircleRec(onlyY, pl->body, map.walls[i]))
-            {
-                pl->pos = onlyY; // Slide vertically
-            }
-            else 
-            {
-                pl->pos = pl->prevpos; // Stuck in a corner, just stop
-            }
-        }
-
-        // Enemy vs wall
-        for (int j=0;j<eCount;++j)
-        {
-            if (CheckCollisionCircleRec(e[j].pos,e[j].body,map.walls[i]))
-            {
-            // Try only moving in X?
-                Vector2 onlyX = { e[j].pos.x, e[j].prevpos.y };
-            // Try only moving in Y?
-                Vector2 onlyY = { e[j].prevpos.x, e[j].pos.y };
-                if (!CheckCollisionCircleRec(onlyX, e[j].body, map.walls[i])) 
-                {
-                    e[j].pos = onlyX; // Slide horizontally
-                } 
-                else if (!CheckCollisionCircleRec(onlyY, e[j].body, map.walls[i]))
-                {
-                    e[j].pos = onlyY; // Slide vertically
-                }
-                else 
-                {
-                    e[j].pos = e[j].prevpos; // Stuck in a corner, just stop
-                }
-            }
-        }
-
-        // Bullet vs wall
-        for (int k=0;k<bCount;++k)
-        {
-            if (b[k].active && CheckCollisionCircleRec(b[k].pos,b[k].size,map.walls[i]))
-            {
-                b[k].active=false;
-            }
-        }
-    }
-    // TMX tile solids collision (walls/furniture/doors/etc.)
-
-    // Player
-    if (IsMapCircleBlocked(pl->pos, pl->body * 0.88f, map.bounds))
-    {
-        Vector2 onlyX = { pl->pos.x, pl->prevpos.y };
-        Vector2 onlyY = { pl->prevpos.x, pl->pos.y };
-
-        if (!IsMapCircleBlocked(onlyX, pl->body * 0.88f, map.bounds))
-        {
-            pl->pos = onlyX;
-        }
-        else if (!IsMapCircleBlocked(onlyY, pl->body * 0.88f, map.bounds))
-        {
-            pl->pos = onlyY;
-        }
-        else
-        {
-            pl->pos = pl->prevpos;
-        }
+        pl->pos = ResolveCircleSlide(pl->pos, pl->prevpos, playerRadius, map.bounds);
     }
 
-    // Enemy
-    for (int i = 0; i < eCount; ++i)
+    // Enemy vs TMX collision map with axis slide fallback.
+    for (int i = 0; e && i < eCount; ++i)
     {
+        float enemyRadius;
         if (!e[i].active) continue;
 
-        if (IsMapCircleBlocked(e[i].pos, e[i].body * 0.88f, map.bounds))
+        enemyRadius = e[i].body * 0.88f;
+        if (IsMapCircleBlocked(e[i].pos, enemyRadius, map.bounds))
         {
-            Vector2 onlyX = { e[i].pos.x, e[i].prevpos.y };
-            Vector2 onlyY = { e[i].prevpos.x, e[i].pos.y };
-
-            if (!IsMapCircleBlocked(onlyX, e[i].body * 0.88f, map.bounds))
-            {
-                e[i].pos = onlyX;
-            }
-            else if (!IsMapCircleBlocked(onlyY, e[i].body * 0.88f, map.bounds))
-            {
-                e[i].pos = onlyY;
-            }
-            else
-            {
-                e[i].pos = e[i].prevpos;
-            }
+            e[i].pos = ResolveCircleSlide(e[i].pos, e[i].prevpos, enemyRadius, map.bounds);
         }
     }
 
-    // Bullet
-    for (int j = 0; j < bCount; ++j)
+    // Bullets are destroyed when they hit blocked TMX cells.
+    for (int j = 0; b && j < bCount; ++j)
     {
         if (b[j].active && IsMapCircleBlocked(b[j].pos, b[j].size, map.bounds))
         {
@@ -229,41 +189,20 @@ void ResolveMapCollisions(Player* pl, GameMap map,Enemy e[],int eCount,Bullet b[
         }
     }
 
-    // Outer boundaries collision
+    // Keep player inside map bounds.
+    ClampCircleToBounds(&pl->pos, pl->body, map.bounds);
 
-    // Player
-    // Keep X inside
-    if (pl->pos.x < map.bounds.x + pl->body)  pl->pos.x = map.bounds.x + pl->body;
-    if (pl->pos.x > map.bounds.x + map.bounds.width - pl->body)  pl->pos.x = map.bounds.x + map.bounds.width - pl->body;
-
-    // Keep Y inside
-    if (pl->pos.y < map.bounds.y + pl->body)  pl->pos.y = map.bounds.y + pl->body;
-    if (pl->pos.y > map.bounds.y + map.bounds.height - pl->body) pl->pos.y = map.bounds.y + map.bounds.height - pl->body;
-
-    // Enemy
-    for (int i=0;i<eCount;++i)
+    // Keep active enemies inside world bounds.
+    for (int i = 0; e && i < eCount; ++i)
     {
-        // Keep X inside
-        if (e[i].pos.x < map.bounds.x +e[i].body)  e[i].pos.x = map.bounds.x + e[i].body;
-        if (e[i].pos.x > map.bounds.x + map.bounds.width - e[i].body)  e[i].pos.x = map.bounds.x + map.bounds.width - e[i].body;
-
-        // Keep Y inside
-        if (e[i].pos.y < map.bounds.y + e[i].body)  e[i].pos.y = map.bounds.y + e[i].body;
-        if (e[i].pos.y > map.bounds.y + map.bounds.height - e[i].body) e[i].pos.y = map.bounds.y + map.bounds.height - e[i].body;
+        if (!e[i].active) continue;
+        ClampCircleToBounds(&e[i].pos, e[i].body, map.bounds);
     }
 
-    // Bullet vs boundary
-    for (int j=0;j<bCount;++j)
+    // Bullets are destroyed when they leave world bounds.
+    for (int j = 0; b && j < bCount; ++j)
     {
-        if (b[j].active)
-        {
-            // Keep inside X
-            if (b[j].pos.x < map.bounds.x + b[j].size || b[j].pos.x > map.bounds.x + map.bounds.width - b[j].size) 
-                b[j].active = false;
-            
-            // Keep inside Y
-            if (b[j].pos.y < map.bounds.y + b[j].size || b[j].pos.y > map.bounds.y + map.bounds.height - b[j].size) 
-                b[j].active = false;
-        }
+        if (!b[j].active) continue;
+        if (IsBulletOutOfBounds(&b[j], map.bounds)) b[j].active = false;
     }
 }
